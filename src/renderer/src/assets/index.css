@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #1a1a1a;
+  color: #fff;
+  user-select: none;
+}
+
+/* Draggable title bar */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}
+
+/* Prose styles for markdown */
+.prose {
+  color: #ccc;
+}
+
+.prose h1 { color: #fff; font-size: 1.3em; font-weight: 700; margin-bottom: 0.5em; }
+.prose h2 { color: #eee; font-size: 1.1em; font-weight: 600; margin-top: 1em; margin-bottom: 0.3em; }
+.prose h3 { color: #ddd; font-size: 1em; font-weight: 600; margin-top: 0.8em; margin-bottom: 0.3em; }
+.prose p { margin-bottom: 0.5em; line-height: 1.6; }
+.prose code { background: #2a2a2a; padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.85em; color: #f97316; }
+.prose pre { background: #1a1a1a; padding: 1em; border-radius: 6px; border: 1px solid #333; overflow-x: auto; margin: 0.8em 0; }
+.prose pre code { background: none; color: #ccc; padding: 0; }
+.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 0.5em; }
+.prose li { margin-bottom: 0.2em; }
+.prose strong { color: #fff; }
+.prose em { color: #ccc; }
+
+/* Slide animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
