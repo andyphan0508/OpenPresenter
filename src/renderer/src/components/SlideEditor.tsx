@@ -29,10 +29,10 @@ export function SlideEditor({ onGoLive }: SlideEditorProps) {
 
   if (!slide || !pres || !currentPresentationId || !currentSlideId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#181818]">
+      <div className="flex-1 flex items-center justify-center bg-surface-2">
         <div className="text-center">
           <div className="text-6xl mb-4 opacity-20">🖼</div>
-          <p className="text-[#555] text-sm">Select a slide to edit</p>
+          <p className="text-muted text-sm">Select a slide to edit</p>
         </div>
       </div>
     )
@@ -57,11 +57,11 @@ export function SlideEditor({ onGoLive }: SlideEditorProps) {
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-[#181818]">
+    <div className="flex-1 flex overflow-hidden bg-surface-2">
       {/* Center: Canvas preview */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Canvas area */}
-        <div className="flex-1 flex items-center justify-center p-6 bg-[#181818]">
+        <div className="flex-1 flex items-center justify-center p-6 bg-surface-2">
           <div className="relative w-full max-w-3xl" style={{ aspectRatio: '16/9' }}>
             {/* Slide preview at actual edit scale */}
             <div className="absolute inset-0 rounded-lg overflow-hidden shadow-2xl">
@@ -78,9 +78,9 @@ export function SlideEditor({ onGoLive }: SlideEditorProps) {
         </div>
 
         {/* Bottom bar */}
-        <div className="h-10 bg-[#1e1e1e] border-t border-[#2a2a2a] flex items-center justify-between px-4">
+        <div className="h-10 bg-panel border-t border-app flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <span className="text-[#555] text-xs">
+            <span className="text-muted text-xs">
               {slide.textBlocks.length} text block{slide.textBlocks.length !== 1 ? 's' : ''}
             </span>
             {slide.notes && (
@@ -101,17 +101,17 @@ export function SlideEditor({ onGoLive }: SlideEditorProps) {
       </div>
 
       {/* Right panel: Edit controls */}
-      <div className="w-72 bg-[#1e1e1e] border-l border-[#2a2a2a] flex flex-col overflow-hidden">
+      <div className="w-72 bg-panel border-l border-app flex flex-col overflow-hidden flex-shrink-0">
         {/* Tab bar */}
-        <div className="flex border-b border-[#2a2a2a]">
+        <div className="flex border-b border-app">
           {(['background', 'text', 'slide'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${
                 activeTab === tab
-                  ? 'text-orange-400 border-b-2 border-orange-500 bg-[#252525]'
-                  : 'text-[#666] hover:text-white'
+                  ? 'text-orange-500 border-b-2 border-orange-500 bg-surface'
+                  : 'text-muted hover:text-primary'
               }`}
             >
               {tab}
@@ -179,7 +179,7 @@ function BackgroundPanel({
   return (
     <div className="p-4 space-y-4">
       <div>
-        <label className="text-xs text-[#888] font-medium uppercase tracking-wider block mb-2">
+        <label className="text-xs text-muted font-medium uppercase tracking-wider block mb-2">
           Background Type
         </label>
         <div className="flex gap-1">
@@ -194,7 +194,7 @@ function BackgroundPanel({
               className={`flex-1 py-1.5 text-xs rounded capitalize transition-colors ${
                 slide.background.type === type
                   ? 'bg-orange-500 text-white'
-                  : 'bg-[#2a2a2a] text-[#888] hover:bg-[#333]'
+                  : 'bg-surface text-muted hover:bg-hover-2'
               }`}
             >
               {type}
@@ -205,19 +205,19 @@ function BackgroundPanel({
 
       {slide.background.type === 'color' && (
         <div>
-          <label className="text-xs text-[#888] block mb-2">Color</label>
+          <label className="text-xs text-muted block mb-2">Color</label>
           <div className="flex gap-2 items-center">
             <input
               type="color"
               value={slide.background.value}
               onChange={(e) => onUpdate({ type: 'color', value: e.target.value })}
-              className="w-10 h-8 rounded cursor-pointer bg-transparent border border-[#444]"
+              className="w-10 h-8 rounded cursor-pointer bg-transparent border border-app-2"
             />
             <input
               type="text"
               value={slide.background.value}
               onChange={(e) => onUpdate({ type: 'color', value: e.target.value })}
-              className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white text-xs font-mono"
+              className="flex-1 input-base px-2 py-1 text-xs font-mono"
             />
           </div>
           {/* Quick colors */}
@@ -226,7 +226,7 @@ function BackgroundPanel({
               <button
                 key={c}
                 onClick={() => onUpdate({ type: 'color', value: c })}
-                className="w-6 h-6 rounded border border-[#444] transition-transform hover:scale-110"
+                className="w-6 h-6 rounded border border-app-2 transition-transform hover:scale-110"
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -237,13 +237,13 @@ function BackgroundPanel({
       {slide.background.type === 'image' && (
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-[#888] block mb-2">Image</label>
+            <label className="text-xs text-muted block mb-2">Image</label>
             {slide.background.url ? (
               <div className="relative">
                 <img
                   src={slide.background.url}
                   alt="bg"
-                  className="w-full h-24 object-cover rounded border border-[#444]"
+                  className="w-full h-24 object-cover rounded border border-app-2"
                 />
                 <button
                   onClick={() => onUpdate({ type: 'image', url: '', fit: 'cover' })}
@@ -258,13 +258,13 @@ function BackgroundPanel({
                 className="w-full h-24 border-2 border-dashed border-[#444] rounded flex flex-col items-center justify-center gap-1 hover:border-orange-500/50 transition-colors group"
               >
                 <span className="text-2xl group-hover:scale-110 transition-transform">🖼</span>
-                <span className="text-xs text-[#666]">Click to upload image</span>
+                <span className="text-xs text-muted">Click to upload image</span>
               </button>
             )}
           </div>
           {slide.background.url && (
             <div>
-              <label className="text-xs text-[#888] block mb-2">Fit</label>
+              <label className="text-xs text-muted block mb-2">Fit</label>
               <div className="flex gap-1">
                 {(['cover', 'contain', 'fill'] as const).map((fit) => (
                   <button
@@ -275,7 +275,7 @@ function BackgroundPanel({
                     className={`flex-1 py-1 text-xs rounded capitalize transition-colors ${
                       (slide.background as any).fit === fit
                         ? 'bg-orange-500 text-white'
-                        : 'bg-[#2a2a2a] text-[#888] hover:bg-[#333]'
+                        : 'bg-surface text-muted hover:bg-hover-2'
                     }`}
                   >
                     {fit}
@@ -290,7 +290,7 @@ function BackgroundPanel({
       {slide.background.type === 'video' && (
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-[#888] block mb-2">Video URL or file path</label>
+            <label className="text-xs text-muted block mb-2">Video URL or file path</label>
             <input
               type="text"
               value={videoUrl}
@@ -322,7 +322,7 @@ function BackgroundPanel({
                 }
                 className="accent-orange-500"
               />
-              <span className="text-xs text-[#888]">Loop</span>
+              <span className="text-xs text-muted">Loop</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -338,7 +338,7 @@ function BackgroundPanel({
                 }
                 className="accent-orange-500"
               />
-              <span className="text-xs text-[#888]">Muted</span>
+              <span className="text-xs text-muted">Muted</span>
             </label>
           </div>
         </div>
@@ -370,7 +370,7 @@ function TextPanel({
       {/* Block list */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-[#888] font-medium uppercase tracking-wider">
+          <label className="text-xs text-muted font-medium uppercase tracking-wider">
             Text Blocks
           </label>
           <button
@@ -388,15 +388,15 @@ function TextPanel({
               className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition-colors ${
                 block.id === selectedBlockId
                   ? 'bg-orange-500/20 border border-orange-500/30'
-                  : 'bg-[#2a2a2a] hover:bg-[#333]'
+                  : 'bg-surface text-muted hover:bg-hover-2'
               }`}
             >
-              <span className="text-xs text-[#aaa] truncate flex-1">
+              <span className="text-xs text-secondary truncate flex-1">
                 {idx + 1}. {block.content.slice(0, 30) || '(empty)'}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteBlock(block.id) }}
-                className="text-[#555] hover:text-red-400 ml-2 text-xs"
+                className="text-muted hover:text-red-400 ml-2 text-xs"
               >
                 ✕
               </button>
@@ -407,25 +407,25 @@ function TextPanel({
 
       {/* Block editor */}
       {selectedBlock && (
-        <div className="space-y-3 border-t border-[#2a2a2a] pt-3">
-          <label className="text-xs text-[#888] font-medium uppercase tracking-wider block">
+        <div className="space-y-3 border-t border-app pt-3">
+          <label className="text-xs text-muted font-medium uppercase tracking-wider block">
             Edit Text Block
           </label>
 
           {/* Content */}
           <div>
-            <label className="text-xs text-[#666] block mb-1">Content</label>
+            <label className="text-xs text-muted block mb-1">Content</label>
             <textarea
               value={selectedBlock.content}
               onChange={(e) => onUpdateBlock(selectedBlock.id, { content: e.target.value })}
               rows={4}
-              className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2 py-1.5 text-white text-xs resize-y focus:border-orange-500 outline-none font-mono"
+              className="w-full input-base px-2 py-1.5 text-xs resize-y font-mono"
             />
           </div>
 
           {/* Font size */}
           <div>
-            <label className="text-xs text-[#666] flex justify-between mb-1">
+            <label className="text-xs text-muted flex justify-between mb-1">
               <span>Font Size</span>
               <span className="text-white">{selectedBlock.fontSize}px</span>
             </label>
@@ -441,26 +441,26 @@ function TextPanel({
 
           {/* Color */}
           <div>
-            <label className="text-xs text-[#666] block mb-1">Color</label>
+            <label className="text-xs text-muted block mb-1">Color</label>
             <div className="flex gap-2 items-center">
               <input
                 type="color"
                 value={selectedBlock.color}
                 onChange={(e) => onUpdateBlock(selectedBlock.id, { color: e.target.value })}
-                className="w-8 h-7 rounded cursor-pointer bg-transparent border border-[#444]"
+                className="w-8 h-7 rounded cursor-pointer bg-transparent border border-app-2"
               />
               <input
                 type="text"
                 value={selectedBlock.color}
                 onChange={(e) => onUpdateBlock(selectedBlock.id, { color: e.target.value })}
-                className="flex-1 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white text-xs font-mono"
+                className="flex-1 input-base px-2 py-1 text-xs font-mono"
               />
             </div>
           </div>
 
           {/* Text align */}
           <div>
-            <label className="text-xs text-[#666] block mb-1">Align</label>
+            <label className="text-xs text-muted block mb-1">Align</label>
             <div className="flex gap-1">
               {(['left', 'center', 'right'] as const).map((align) => (
                 <button
@@ -469,7 +469,7 @@ function TextPanel({
                   className={`flex-1 py-1 text-sm rounded transition-colors ${
                     selectedBlock.textAlign === align
                       ? 'bg-orange-500 text-white'
-                      : 'bg-[#2a2a2a] text-[#888] hover:bg-[#333]'
+                      : 'bg-surface text-muted hover:bg-hover-2'
                   }`}
                 >
                   {align === 'left' ? '⬅' : align === 'center' ? '↔' : '➡'}
@@ -480,7 +480,7 @@ function TextPanel({
 
           {/* Font style */}
           <div>
-            <label className="text-xs text-[#666] block mb-1">Style</label>
+            <label className="text-xs text-muted block mb-1">Style</label>
             <div className="flex gap-1">
               <button
                 onClick={() =>
@@ -491,7 +491,7 @@ function TextPanel({
                 className={`px-3 py-1 text-xs rounded font-bold transition-colors ${
                   selectedBlock.fontWeight === 'bold'
                     ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2a2a] text-[#888]'
+                    : 'bg-surface text-muted'
                 }`}
               >
                 B
@@ -505,7 +505,7 @@ function TextPanel({
                 className={`px-3 py-1 text-xs rounded italic transition-colors ${
                   selectedBlock.fontStyle === 'italic'
                     ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2a2a] text-[#888]'
+                    : 'bg-surface text-muted'
                 }`}
               >
                 I
@@ -521,19 +521,19 @@ function TextPanel({
               onChange={(e) => onUpdateBlock(selectedBlock.id, { textShadow: e.target.checked })}
               className="accent-orange-500"
             />
-            <span className="text-xs text-[#888]">Text Shadow</span>
+            <span className="text-xs text-muted">Text Shadow</span>
           </label>
 
           {/* Position & size */}
           <div className="grid grid-cols-2 gap-2">
             {(['x', 'y', 'width', 'height'] as const).map((prop) => (
               <div key={prop}>
-                <label className="text-xs text-[#666] block mb-1 uppercase">{prop} %</label>
+                <label className="text-xs text-muted block mb-1 uppercase">{prop} %</label>
                 <input
                   type="number"
                   value={selectedBlock[prop]}
                   onChange={(e) => onUpdateBlock(selectedBlock.id, { [prop]: +e.target.value })}
-                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-white text-xs"
+                  className="w-full input-base px-2 py-1 text-xs"
                 />
               </div>
             ))}
@@ -541,7 +541,7 @@ function TextPanel({
 
           {/* Line height */}
           <div>
-            <label className="text-xs text-[#666] flex justify-between mb-1">
+            <label className="text-xs text-muted flex justify-between mb-1">
               <span>Line Height</span>
               <span className="text-white">{selectedBlock.lineHeight}</span>
             </label>
@@ -572,7 +572,7 @@ function SlideSettingsPanel({
   return (
     <div className="p-4 space-y-4">
       <div>
-        <label className="text-xs text-[#888] font-medium uppercase tracking-wider block mb-2">
+        <label className="text-xs text-muted font-medium uppercase tracking-wider block mb-2">
           Transition
         </label>
         <div className="flex gap-1">
@@ -583,7 +583,7 @@ function SlideSettingsPanel({
               className={`flex-1 py-1.5 text-xs rounded capitalize transition-colors ${
                 slide.transition === t
                   ? 'bg-orange-500 text-white'
-                  : 'bg-[#2a2a2a] text-[#888] hover:bg-[#333]'
+                  : 'bg-surface text-muted hover:bg-hover-2'
               }`}
             >
               {t}
@@ -593,7 +593,7 @@ function SlideSettingsPanel({
       </div>
 
       <div>
-        <label className="text-xs text-[#888] font-medium uppercase tracking-wider block mb-2">
+        <label className="text-xs text-muted font-medium uppercase tracking-wider block mb-2">
           Slide Notes
         </label>
         <textarea

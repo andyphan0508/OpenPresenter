@@ -28,6 +28,7 @@ interface AppState {
   activePanel: 'presentations' | 'library' | 'settings'
   selectedSongId: string | null
   editingSlideId: string | null
+  theme: 'dark' | 'light'
 
   // Actions - Presentation
   createPresentation: (name: string) => string
@@ -69,6 +70,7 @@ interface AppState {
   setActivePanel: (panel: AppState['activePanel']) => void
   setSelectedSong: (id: string | null) => void
   setEditingSlide: (id: string | null) => void
+  toggleTheme: () => void
 
   // Computed helpers
   getCurrentPresentation: () => Presentation | undefined
@@ -297,6 +299,7 @@ export const useStore = create<AppState>()((set, get) => ({
   activePanel: 'presentations',
   selectedSongId: null,
   editingSlideId: null,
+  theme: 'dark',
 
   createPresentation: (name) => {
     const id = uuidv4()
@@ -525,6 +528,8 @@ export const useStore = create<AppState>()((set, get) => ({
   setActivePanel: (panel) => set({ activePanel: panel }),
   setSelectedSong: (id) => set({ selectedSongId: id }),
   setEditingSlide: (id) => set({ editingSlideId: id }),
+  toggleTheme: () =>
+    set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
   getCurrentPresentation: () => {
     const { presentations, currentPresentationId } = get()
