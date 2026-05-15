@@ -31,42 +31,47 @@ export function Toolbar({ onToggleOutput, outputEnabled }: ToolbarProps) {
 
   return (
     <>
-      <div className="h-14 bg-panel border-b border-app flex items-center px-4 gap-2 select-none app-drag flex-shrink-0">
+      <div className="h-11 bg-panel border-b border-app flex items-center px-4 gap-2 select-none app-drag flex-shrink-0">
         {/* Traffic lights space on macOS */}
         <div className="w-16 no-drag" />
 
         {/* App name */}
-        <div className="flex items-center gap-2 mr-4">
-          <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">OP</span>
+        <div className="flex items-center gap-2 mr-1 flex-shrink-0">
+          <div className="w-5 h-5 bg-orange-500 rounded flex items-center justify-center">
+            <span className="text-white text-[9px] font-bold">OP</span>
           </div>
           <span className="text-primary font-semibold text-sm">OpenPresenter</span>
         </div>
 
-        <div className="h-6 w-px bg-gray-300 dark:bg-[#444]" />
+        <div className="h-5 w-px bg-gray-200 dark:bg-[#333] flex-shrink-0" />
 
-        {/* Panel toggles */}
-        <div className="flex items-center gap-1 no-drag">
-          <ToolbarButton active={activePanel === 'presentations'} onClick={() => setActivePanel('presentations')} icon="🗂" label="Presentations" />
-          <ToolbarButton active={activePanel === 'library'} onClick={() => setActivePanel('library')} icon="🎵" label="Song Library" />
-          <ToolbarButton active={activePanel === 'settings'} onClick={() => setActivePanel('settings')} icon="⚙️" label="Settings" />
-        </div>
+        {/* Panel tabs */}
+        <nav className="flex items-center gap-0.5 no-drag">
+          <NavTab active={activePanel === 'presentations'} onClick={() => setActivePanel('presentations')}>
+            Presentations
+          </NavTab>
+          <NavTab active={activePanel === 'library'} onClick={() => setActivePanel('library')}>
+            Songs
+          </NavTab>
+          <NavTab active={activePanel === 'settings'} onClick={() => setActivePanel('settings')}>
+            Settings
+          </NavTab>
+        </nav>
 
-        <div className="h-6 w-px bg-gray-300 dark:bg-[#444]" />
+        <div className="h-5 w-px bg-gray-200 dark:bg-[#333] flex-shrink-0" />
 
+        {/* New presentation shortcut */}
         <button
           onClick={() => setShowNewPresDialog(true)}
-          className="no-drag flex items-center gap-1.5 px-3 py-1.5 rounded bg-surface hover:bg-surface-2 text-primary text-sm transition-colors bg-hover"
+          title="New Presentation (opens dialog)"
+          className="no-drag w-7 h-7 flex items-center justify-center rounded text-muted hover:text-primary hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-colors text-lg leading-none"
         >
-          <span>+</span>
-          <span>New</span>
+          +
         </button>
 
-        {pres && (
-          <div className="flex items-center gap-2 ml-2">
-            <span className="text-muted text-sm">|</span>
-            <span className="text-primary text-sm font-medium truncate max-w-48">{pres.name}</span>
-          </div>
+        {/* Current presentation indicator */}
+        {pres && activePanel !== 'library' && (
+          <span className="text-secondary text-xs truncate max-w-40 leading-none">{pres.name}</span>
         )}
 
         <div className="flex-1" />
@@ -75,29 +80,34 @@ export function Toolbar({ onToggleOutput, outputEnabled }: ToolbarProps) {
         <button
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          className="no-drag w-8 h-8 flex items-center justify-center rounded bg-surface hover:bg-hover-2 text-muted hover:text-primary transition-colors text-sm"
+          className="no-drag w-7 h-7 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-muted hover:text-primary transition-colors text-sm"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? '☀' : '☽'}
         </button>
 
-        {/* Output button */}
+        {/* Output / Live button */}
         <button
           onClick={onToggleOutput}
-          className={`no-drag flex items-center gap-2 px-4 py-1.5 rounded font-medium text-sm transition-all ${
+          title={outputEnabled ? 'Output is live — click to stop' : 'Click to open the output screen for your audience'}
+          className={`no-drag flex items-center gap-2 px-4 py-1.5 rounded font-medium text-sm transition-all flex-shrink-0 ${
             outputEnabled
-              ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/30'
-              : 'bg-surface hover:bg-surface text-primary border border-app'
+              ? 'bg-orange-500 hover:bg-orange-600 text-white'
+              : 'bg-transparent text-muted hover:text-primary border border-app hover:border-orange-400 hover:bg-orange-500/5'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${outputEnabled ? 'bg-white animate-pulse' : 'bg-gray-400 dark:bg-[#666]'}`} />
-          <span>Output</span>
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            outputEnabled ? 'bg-white animate-pulse' : 'bg-gray-400 dark:bg-[#555]'
+          }`} />
+          <span>{outputEnabled ? 'Live' : 'Output'}</span>
         </button>
       </div>
 
+      {/* New Presentation dialog */}
       {showNewPresDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-panel rounded-xl border border-app p-6 w-96 shadow-2xl">
-            <h2 className="text-primary font-semibold text-lg mb-4">New Presentation</h2>
+            <h2 className="text-primary font-semibold text-lg mb-1">New Presentation</h2>
+            <p className="text-muted text-xs mb-4">Give your presentation a name to get started.</p>
             <input
               autoFocus
               type="text"
@@ -107,14 +117,20 @@ export function Toolbar({ onToggleOutput, outputEnabled }: ToolbarProps) {
                 if (e.key === 'Enter') handleNewPresentation()
                 if (e.key === 'Escape') setShowNewPresDialog(false)
               }}
-              placeholder="Presentation name..."
+              placeholder="e.g. Sunday Service — May 18"
               className="input-base w-full px-3 py-2 text-sm mb-4"
             />
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowNewPresDialog(false)} className="px-4 py-2 rounded-lg bg-surface hover:bg-hover-2 text-primary text-sm transition-colors">
+              <button
+                onClick={() => setShowNewPresDialog(false)}
+                className="px-4 py-2 rounded-lg bg-surface hover:bg-hover-2 text-primary text-sm transition-colors"
+              >
                 Cancel
               </button>
-              <button onClick={handleNewPresentation} className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors">
+              <button
+                onClick={handleNewPresentation}
+                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition-colors"
+              >
                 Create
               </button>
             </div>
@@ -125,19 +141,25 @@ export function Toolbar({ onToggleOutput, outputEnabled }: ToolbarProps) {
   )
 }
 
-function ToolbarButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+function NavTab({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
     <button
       onClick={onClick}
-      title={label}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm transition-colors ${
+      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
         active
-          ? 'bg-orange-500/20 text-orange-500 dark:text-orange-400 border border-orange-500/30'
-          : 'text-muted hover:text-primary bg-hover'
+          ? 'bg-orange-500/10 text-orange-500 dark:text-orange-400'
+          : 'text-muted hover:text-primary hover:bg-gray-100 dark:hover:bg-[#2a2a2a]'
       }`}
     >
-      <span>{icon}</span>
-      <span className="hidden xl:inline">{label}</span>
+      {children}
     </button>
   )
 }

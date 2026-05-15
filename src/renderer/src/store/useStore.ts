@@ -6,6 +6,7 @@ import {
   TextBlock,
   Song,
   OutputSettings,
+  MediaFile,
   DEFAULT_OUTPUT_SETTINGS,
   DEFAULT_TEXT_BLOCK
 } from '../types'
@@ -19,6 +20,9 @@ interface AppState {
 
   // Library
   songs: Song[]
+
+  // Media files
+  mediaFiles: MediaFile[]
 
   // Output
   outputEnabled: boolean
@@ -61,6 +65,10 @@ interface AppState {
   updateSong: (id: string, updates: Partial<Song>) => void
   deleteSong: (id: string) => void
   importSongFromMarkdown: (markdown: string, category: Song['category']) => string
+
+  // Actions - Media
+  addMediaFile: (file: Omit<MediaFile, 'id' | 'createdAt'>) => string
+  removeMediaFile: (id: string) => void
 
   // Actions - Output
   setOutputEnabled: (enabled: boolean) => void
@@ -128,13 +136,11 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
   for (const line of lines) {
     const trimmed = line.trim()
 
-    // Title: # Song Title
     if (trimmed.startsWith('# ')) {
       title = trimmed.slice(2).trim()
       continue
     }
 
-    // Metadata: ## Author: name
     if (trimmed.startsWith('## Author:')) {
       author = trimmed.slice(10).trim()
       continue
@@ -144,15 +150,14 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
       continue
     }
 
-    // Section header: [Verse 1] or [Chorus] or ## Verse 1
     const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/) || trimmed.match(/^##\s+(.+)$/)
     if (sectionMatch) {
       pushSection()
       const sectionText = sectionMatch[1].toLowerCase()
       let sectionType: Song['slides'][0]['sectionType'] = 'verse'
 
-      for (const [key, type] of Object.entries(sectionPatterns)) {
-        if (sectionText.includes(key)) {
+      for (const [k, type] of Object.entries(sectionPatterns)) {
+        if (sectionText.includes(k)) {
           sectionType = type
           break
         }
@@ -174,7 +179,6 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
 
   pushSection()
 
-  // If no sections found, treat whole content as one slide
   if (slides.length === 0 && markdown.trim()) {
     slides.push({
       id: uuidv4(),
@@ -277,10 +281,34 @@ Vinh hiển và năng quyền`,
     slides: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
+  },
+  {
+    id: uuidv4(),
+    title: 'Tôn Vinh Chúa Hằng Hữu',
+    author: '',
+    category: 'tvchh',
+    key: 'D',
+    tags: ['praise', 'worship'],
+    rawMarkdown: `# Tôn Vinh Chúa Hằng Hữu
+## Key: D
+
+[Verse 1]
+Tôn vinh Chúa hằng hữu
+Đấng ngự trị đời đời
+Mọi loài thọ tạo hát lên
+Ngợi ca danh Ngài tôn cao
+
+[Chorus]
+Hallelujah, Hallelujah
+Ngợi khen Đức Chúa Trời
+Hallelujah, Hallelujah
+Danh Ngài tôn cao muôn đời`,
+    slides: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ]
 
-// Parse demo songs
 DEMO_SONGS.forEach((song) => {
   const parsed = parseSongMarkdown(song.rawMarkdown)
   song.slides = parsed.slides
@@ -294,6 +322,7 @@ export const useStore = create<AppState>()((set, get) => ({
   currentSlideId: null,
   liveSlideId: null,
   songs: DEMO_SONGS,
+  mediaFiles: [],
   outputEnabled: false,
   outputSettings: DEFAULT_OUTPUT_SETTINGS,
   activePanel: 'presentations',
@@ -376,7 +405,9 @@ export const useStore = create<AppState>()((set, get) => ({
           p.id === presentationId ? { ...p, slides: newSlides } : p
         ),
         currentSlideId:
-          state.currentSlideId === slideId ? (newSlides[0]?.id ?? null) : state.currentSlideId
+          state.currentSlideId === slideId ? (newSlides[0]?.id ?? null) : state.currentSlideId,
+        editingSlideId:
+          state.editingSlideId === slideId ? null : state.editingSlideId
       }
     })
   },
@@ -517,6 +548,19 @@ export const useStore = create<AppState>()((set, get) => ({
       slides: parsed.slides,
       rawMarkdown: markdown
     })
+  },
+
+  addMediaFile: (file) => {
+    const id = uuidv4()
+    const now = new Date().toISOString()
+    set((state) => ({
+      mediaFiles: [...state.mediaFiles, { ...file, id, createdAt: now }]
+    }))
+    return id
+  },
+
+  removeMediaFile: (id) => {
+    set((state) => ({ mediaFiles: state.mediaFiles.filter((f) => f.id !== id) }))
   },
 
   setOutputEnabled: (enabled) => set({ outputEnabled: enabled }),

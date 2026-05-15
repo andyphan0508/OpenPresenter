@@ -2,7 +2,8 @@ import React, { useEffect, useCallback } from "react";
 import { useStore } from "./store/useStore";
 import { Toolbar } from "./components/Toolbar";
 import { SlideList } from "./components/SlideList";
-import { SlideEditor } from "./components/SlideEditor";
+import { SlideEditModal } from "./components/SlideEditor";
+import { MediaPanel } from "./components/MediaPanel";
 import { LibraryPanel } from "./components/LibraryPanel";
 import { PresentationPanel } from "./components/PresentationPanel";
 import { OutputSettingsPanel } from "./components/OutputSettingsPanel";
@@ -12,12 +13,13 @@ export function App() {
   const {
     outputEnabled,
     outputSettings,
-    currentPresentationId,
     liveSlideId,
+    editingSlideId,
     activePanel,
     theme,
     setOutputEnabled,
     setLiveSlide,
+    setEditingSlide,
     getCurrentPresentation,
   } = useStore();
 
@@ -35,7 +37,7 @@ export function App() {
     }
   }, [liveSlideId, outputEnabled]);
 
-  // Also resend when output settings change
+  // Resend when output settings change
   useEffect(() => {
     if (outputEnabled) {
       window.api.updateOutputSettings(outputSettings);
@@ -46,7 +48,6 @@ export function App() {
   useEffect(() => {
     const cleanupOpen = window.api.onOutputWindowOpened(() => {
       setOutputEnabled(true);
-      // Send current slide if any
       const pres = getCurrentPresentation();
       const liveSlide = pres?.slides.find((s) => s.id === liveSlideId);
       if (liveSlide) {
@@ -60,7 +61,6 @@ export function App() {
       setOutputEnabled(false);
     });
 
-    // Check initial state
     window.api.getOutputState().then((state: boolean) => {
       setOutputEnabled(state);
     });
@@ -81,7 +81,6 @@ export function App() {
       const pres = getCurrentPresentation();
       const slide = pres?.slides.find((s) => s.id === slideId);
 
-      // Toggle: if already live, clear
       if (slideId === liveSlideId) {
         setLiveSlide(null);
         if (outputEnabled) {
@@ -102,7 +101,15 @@ export function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
+      // Allow shortcuts unless editing text (but not in modal)
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
+      // Don't trigger shortcuts while slide edit modal is open
+      if (editingSlideId) {
+        if (e.key === "Escape") {
+          setEditingSlide(null);
+        }
+        return;
+      }
 
       const pres = getCurrentPresentation();
       if (!pres) return;
@@ -131,57 +138,54 @@ export function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [liveSlideId, handleGoLive]);
+  }, [liveSlideId, editingSlideId, handleGoLive]);
+
+  const isLibraryMode = activePanel === "library";
 
   return (
-    <div className={`flex flex-col h-screen overflow-hidden bg-app text-primary${theme === 'dark' ? ' dark' : ''}`}>
-      {/* Toolbar */}
-      <Toolbar
-        onToggleOutput={handleToggleOutput}
-        outputEnabled={outputEnabled}
-      />
+    <div
+      className={`flex flex-col h-screen overflow-hidden bg-app text-primary${theme === "dark" ? " dark" : ""}`}
+    >
+      <Toolbar onToggleOutput={handleToggleOutput} outputEnabled={outputEnabled} />
 
-      {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar */}
-        <div className="w-64 border-r border-app flex flex-col overflow-hidden flex-shrink-0">
-          {activePanel === "presentations" && <PresentationPanel />}
-          {activePanel === "library" && (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <p className="text-[#555] text-xs text-center">
-                Open Library panel to manage songs
-              </p>
-            </div>
-          )}
-          {activePanel === "settings" && <OutputSettingsPanel />}
-        </div>
+        {!isLibraryMode && (
+          <div className="w-60 border-r border-app flex flex-col overflow-hidden flex-shrink-0">
+            {activePanel === "presentations" && <PresentationPanel />}
+            {activePanel === "settings" && <OutputSettingsPanel />}
+          </div>
+        )}
 
-        {/* Center: slide list + editor */}
+        {/* Center content */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          {activePanel === "library" ? (
+          {isLibraryMode ? (
             <LibraryPanel />
           ) : (
             <>
-              {/* Slide strip */}
+              {/* Slide management grid — fills remaining height */}
               <SlideList onGoLive={handleGoLive} />
-
-              {/* Slide editor */}
-              <SlideEditor onGoLive={handleGoLive} />
+              {/* Media import panel at bottom */}
+              <MediaPanel />
             </>
           )}
         </div>
 
-        {/* Right: Live preview */}
-        {activePanel !== "library" && (
+        {/* Right: Live Output Preview */}
+        {!isLibraryMode && (
           <LivePreviewPanel liveSlideId={liveSlideId} onGoLive={handleGoLive} />
         )}
       </div>
 
-      {/* Status bar */}
       <StatusBar />
+
+      {/* Slide edit modal — rendered on top of everything */}
+      <SlideEditModal onGoLive={handleGoLive} />
     </div>
   );
 }
+
+// ─── Live Preview Panel ──────────────────────────────────────────────────────
 
 function LivePreviewPanel({
   liveSlideId,
@@ -190,26 +194,31 @@ function LivePreviewPanel({
   liveSlideId: string | null;
   onGoLive: (id: string) => void;
 }) {
-  const { getCurrentPresentation, outputSettings } = useStore();
+  const { getCurrentPresentation, outputSettings, outputEnabled } = useStore();
   const pres = getCurrentPresentation();
-  const liveSlide = pres?.slides.find((s) => s.id === liveSlideId);
 
   if (!pres) return null;
 
+  const liveSlide = pres?.slides.find((s) => s.id === liveSlideId);
   const liveIdx = pres.slides.findIndex((s) => s.id === liveSlideId);
   const nextSlide = liveIdx >= 0 ? pres.slides[liveIdx + 1] : pres.slides[0];
 
   return (
-    <div className="w-64 border-l border-app flex flex-col bg-app flex-shrink-0">
-      <div className="p-3 border-b border-app">
-        <p className="text-xs text-muted font-medium uppercase tracking-wider">
-          Live Preview
-        </p>
+    <div className="w-64 border-l border-app flex flex-col bg-panel flex-shrink-0">
+      {/* Panel header */}
+      <div className="px-3 py-2 border-b border-app flex items-center justify-between">
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Output Preview</span>
+        {outputEnabled && liveSlideId && (
+          <span className="flex items-center gap-1 text-[10px] font-bold text-orange-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+            LIVE
+          </span>
+        )}
       </div>
 
-      {/* Current live */}
+      {/* Now showing */}
       <div className="p-3 border-b border-app">
-        <p className="text-xs text-red-400 mb-1.5 font-medium">● Current</p>
+        <p className="text-[10px] text-muted font-medium mb-2 uppercase tracking-wider">Now Showing</p>
         {liveSlide ? (
           <LiveMiniSlide slide={liveSlide} settings={outputSettings} />
         ) : (
@@ -217,65 +226,100 @@ function LivePreviewPanel({
             className="w-full rounded bg-black border border-app flex items-center justify-center"
             style={{ aspectRatio: "16/9" }}
           >
-            <span className="text-faint text-xs">Black</span>
+            <span className="text-faint text-[10px]">Black Screen</span>
           </div>
+        )}
+        {liveSlide && (
+          <p className="text-[10px] text-muted mt-1.5 text-center truncate">
+            {liveSlide.textBlocks[0]?.content.slice(0, 40) || "(no text)"}
+          </p>
         )}
       </div>
 
-      {/* Next slide */}
-      <div className="p-3">
-        <p className="text-xs text-muted mb-1.5 font-medium">Next</p>
-        {nextSlide ? (
-          <div
-            className="cursor-pointer group"
+      {/* Up next */}
+      <div className="p-3 border-b border-app">
+        <p className="text-[10px] text-muted font-medium mb-2 uppercase tracking-wider">Up Next</p>
+        {nextSlide && nextSlide.id !== liveSlideId ? (
+          <button
+            className="w-full group text-left"
             onClick={() => onGoLive(nextSlide.id)}
+            title="Click to present this slide"
           >
             <LiveMiniSlide slide={nextSlide} settings={outputSettings} />
-            <p className="text-xs text-muted mt-1 group-hover:text-primary transition-colors text-center">
-              Click to go live
+            <p className="text-[10px] text-faint group-hover:text-orange-500 mt-1.5 text-center transition-colors">
+              Click to present →
             </p>
-          </div>
+          </button>
         ) : (
           <div
-            className="w-full rounded bg-black border border-app flex items-center justify-center"
+            className="w-full rounded bg-gray-100 dark:bg-[#1e1e1e] border border-app flex items-center justify-center"
             style={{ aspectRatio: "16/9" }}
           >
-            <span className="text-faint text-xs">End</span>
+            <span className="text-faint text-[10px]">
+              {pres.slides.length === 0 ? "No slides" : "End of slides"}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Slide navigator */}
-      {pres && (
-        <div className="flex-1 p-3 border-t border-app overflow-hidden flex flex-col">
-          <p className="text-xs text-muted mb-2 font-medium uppercase tracking-wider">
-            All Slides
-          </p>
-          <div className="flex-1 overflow-y-auto space-y-1">
-            {pres.slides.map((slide, idx) => (
-              <button
-                key={slide.id}
-                onClick={() => onGoLive(slide.id)}
-                className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
-                  slide.id === liveSlideId
-                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                    : "text-muted hover:text-primary bg-hover"
-                }`}
-              >
-                <span className="text-faint mr-1">{idx + 1}.</span>
-                {slide.textBlocks[0]?.content.slice(0, 30) || "(empty)"}
-              </button>
-            ))}
+      {/* Slide navigator with prev/next arrows */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-3 py-2 border-b border-app flex items-center justify-between">
+          <p className="text-[10px] text-muted font-medium uppercase tracking-wider">Navigator</p>
+          <div className="flex gap-0.5">
+            <button
+              onClick={() => {
+                const idx = pres.slides.findIndex((s) => s.id === liveSlideId)
+                const prev = pres.slides[idx - 1]
+                if (prev) onGoLive(prev.id)
+              }}
+              disabled={liveIdx <= 0}
+              className="w-5 h-5 flex items-center justify-center rounded bg-gray-100 dark:bg-[#2a2a2a] hover:bg-orange-500 hover:text-white text-muted disabled:opacity-30 transition-colors text-xs"
+              title="Previous slide"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => {
+                const idx = pres.slides.findIndex((s) => s.id === liveSlideId)
+                const next = pres.slides[idx + 1]
+                if (next) onGoLive(next.id)
+              }}
+              disabled={liveIdx >= pres.slides.length - 1}
+              className="w-5 h-5 flex items-center justify-center rounded bg-gray-100 dark:bg-[#2a2a2a] hover:bg-orange-500 hover:text-white text-muted disabled:opacity-30 transition-colors text-xs"
+              title="Next slide"
+            >
+              ›
+            </button>
           </div>
         </div>
-      )}
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+          {pres.slides.map((slide, idx) => (
+            <button
+              key={slide.id}
+              onClick={() => onGoLive(slide.id)}
+              title="Click to present this slide"
+              className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors flex items-center gap-2 ${
+                slide.id === liveSlideId
+                  ? "bg-orange-500/15 text-orange-500 dark:text-orange-400"
+                  : "text-secondary hover:text-primary hover:bg-gray-100 dark:hover:bg-[#2a2a2a]"
+              }`}
+            >
+              <span className="text-faint font-mono text-[10px] w-4 text-right flex-shrink-0">{idx + 1}</span>
+              <span className="truncate">{slide.textBlocks[0]?.content.slice(0, 28) || "(empty)"}</span>
+              {slide.id === liveSlideId && (
+                <span className="ml-auto text-[9px] font-bold text-orange-500 flex-shrink-0">LIVE</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 function LiveMiniSlide({
   slide,
-  settings,
 }: {
   slide: import("./types").Slide;
   settings: import("./types").OutputSettings;
@@ -296,7 +340,7 @@ function LiveMiniSlide({
 
   return (
     <div
-      className="w-full rounded overflow-hidden border border-app"
+      className="w-full rounded overflow-hidden border border-app shadow-sm"
       style={{ ...bgStyle, aspectRatio: "16/9", position: "relative" }}
     >
       {mainText && (

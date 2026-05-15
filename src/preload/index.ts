@@ -12,6 +12,9 @@ const api = {
   updateOutputSettings: (settings: unknown) =>
     ipcRenderer.send('update-output-settings', settings),
 
+  // Display enumeration
+  getDisplays: () => ipcRenderer.invoke('get-displays'),
+
   // File operations
   openFileDialog: (options?: unknown) => ipcRenderer.invoke('open-file-dialog', options),
   saveFileDialog: (options?: unknown) => ipcRenderer.invoke('save-file-dialog', options),

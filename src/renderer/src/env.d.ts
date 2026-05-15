@@ -21,6 +21,16 @@ declare global {
       onOutputSettingsChanged: (callback: (settings: unknown) => void) => () => void
       onOutputWindowOpened: (callback: () => void) => () => void
       onOutputWindowClosed: (callback: () => void) => () => void
+      getDisplays: () => Promise<Array<{
+        id: number
+        label: string
+        width: number
+        height: number
+        x: number
+        y: number
+        isPrimary: boolean
+        scaleFactor: number
+      }>>
     }
   }
 }

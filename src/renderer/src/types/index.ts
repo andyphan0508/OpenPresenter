@@ -56,7 +56,7 @@ export interface Song {
   id: string
   title: string
   author?: string
-  category: 'thanh-ca' | 'biet-thanh-ca' | 'custom'
+  category: 'thanh-ca' | 'biet-thanh-ca' | 'tvchh' | 'custom'
   key?: string
   tempo?: number
   tags: string[]
@@ -74,6 +74,16 @@ export interface OutputSettings {
   defaultTextAlign: 'left' | 'center' | 'right'
   showClock: boolean
   clockPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  targetDisplayId?: number
+}
+
+export interface MediaFile {
+  id: string
+  name: string
+  type: 'image' | 'video'
+  url: string
+  size?: number
+  createdAt: string
 }
 
 export const DEFAULT_OUTPUT_SETTINGS: OutputSettings = {
