@@ -47,6 +47,9 @@ body {
            focus:border-orange-500 outline-none rounded;
   }
 
+  /* Label */
+  .label-xs { @apply text-xs text-muted font-medium uppercase tracking-wider; }
+
   /* Surface card */
   .card {
     @apply bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] rounded-lg;
