@@ -9,8 +9,21 @@
     "preview": "electron-vite preview",
     "start": "electron-vite dev"
   },
+  "build": {
+    "appId": "com.openpresenter",
+    "productName": "OpenPresenter",
+    "fileAssociations": [
+      {
+        "ext": "opres",
+        "name": "OpenPresenter Project",
+        "description": "OpenPresenter Project File",
+        "role": "Editor"
+      }
+    ]
+  },
   "dependencies": {
     "electron-store": "^8.2.0",
+    "lucide-react": "^1.18.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",

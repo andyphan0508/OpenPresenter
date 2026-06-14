@@ -12,15 +12,23 @@ const api = {
   updateOutputSettings: (settings: unknown) =>
     ipcRenderer.send('update-output-settings', settings),
 
-  // Display enumeration
-  getDisplays: () => ipcRenderer.invoke('get-displays'),
-
   // File operations
   openFileDialog: (options?: unknown) => ipcRenderer.invoke('open-file-dialog', options),
   saveFileDialog: (options?: unknown) => ipcRenderer.invoke('save-file-dialog', options),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   writeFile: (filePath: string, data: string) => ipcRenderer.invoke('write-file', filePath, data),
   getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
+
+  // Project file / menu integration
+  notifyReady: () => ipcRenderer.send('renderer-ready'),
+  onMenuAction: (callback: (action: string) => void) => {
+    ipcRenderer.on('menu-action', (_event, action) => callback(action))
+    return () => ipcRenderer.removeAllListeners('menu-action')
+  },
+  onOpenProjectFile: (callback: (filePath: string) => void) => {
+    ipcRenderer.on('open-project-file', (_event, filePath) => callback(filePath))
+    return () => ipcRenderer.removeAllListeners('open-project-file')
+  },
 
   // Listeners
   onDisplaySlide: (callback: (data: unknown) => void) => {

@@ -8,7 +8,9 @@ export function saveState() {
     const toSave = {
       presentations: state.presentations,
       songs: state.songs,
-      outputSettings: state.outputSettings
+      media: state.media,
+      outputSettings: state.outputSettings,
+      theme: state.theme
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   } catch (e) {
@@ -25,7 +27,9 @@ export function loadState() {
     useStore.setState((state) => ({
       presentations: saved.presentations ?? state.presentations,
       songs: saved.songs?.length ? saved.songs : state.songs,
-      outputSettings: saved.outputSettings ?? state.outputSettings
+      media: saved.media ?? state.media,
+      outputSettings: saved.outputSettings ?? state.outputSettings,
+      theme: saved.theme ?? state.theme
     }))
   } catch (e) {
     console.error('Failed to load state:', e)
@@ -38,7 +42,17 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null
 export function setupAutosave() {
   loadState()
 
-  useStore.subscribe(() => {
+  useStore.subscribe((state, prev) => {
+    // Mark the project dirty whenever persisted data (not transient UI) changes.
+    const dataChanged =
+      state.presentations !== prev.presentations ||
+      state.songs !== prev.songs ||
+      state.media !== prev.media ||
+      state.outputSettings !== prev.outputSettings
+    if (dataChanged && !state.dirty) {
+      useStore.setState({ dirty: true })
+    }
+
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(saveState, 500)
   })

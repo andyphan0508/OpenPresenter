@@ -96,6 +96,14 @@ export function OutputWindow() {
         />
       )}
 
+      {/* Dim overlay for image/video backgrounds */}
+      {slide && (bg?.type === 'image' || bg?.type === 'video') && !!bg.dim && bg.dim > 0 && (
+        <div
+          className="absolute inset-0 bg-black pointer-events-none z-[5]"
+          style={{ opacity: bg.dim }}
+        />
+      )}
+
       {/* Transition overlay */}
       <div
         className="absolute inset-0 bg-black transition-opacity duration-200 z-20 pointer-events-none"

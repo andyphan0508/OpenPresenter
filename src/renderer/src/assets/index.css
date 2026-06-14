@@ -47,6 +47,9 @@ body {
            focus:border-orange-500 outline-none rounded;
   }
 
+  /* Label */
+  .label-xs { @apply text-xs text-muted font-medium uppercase tracking-wider; }
+
   /* Surface card */
   .card {
     @apply bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] rounded-lg;
@@ -92,6 +95,47 @@ body {
 .prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 0.5em; }
 .prose li { margin-bottom: 0.2em; }
 
-/* Slide fade animation */
+/* ─── Animation system ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 .slide-fade-in { animation: fadeIn 0.2s ease-in-out; }
+
+/* Soft easing curve shared across the app */
+:root { --ease-soft: cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Fade + gentle rise — used for panel/menu content */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.28s var(--ease-soft) both; }
+
+/* Horizontal slide-in — used when switching side panels */
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fade-in-right { animation: fadeInRight 0.3s var(--ease-soft) both; }
+
+/* Modal backdrop fade */
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+.backdrop-in { animation: backdropIn 0.2s ease-out both; }
+
+/* Modal content — fade + scale pop */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-in { animation: modalIn 0.26s var(--ease-soft) both; }
+
+/* Staggered list items */
+@keyframes listItemIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.list-item-in { animation: listItemIn 0.25s var(--ease-soft) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up, .fade-in-right, .backdrop-in, .modal-in, .list-item-in, .slide-fade-in {
+    animation: none !important;
+  }
+}

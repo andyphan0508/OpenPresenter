@@ -17,20 +17,13 @@ declare global {
       readFile: (filePath: string) => Promise<{ success: boolean; data?: string; path?: string; error?: string }>
       writeFile: (filePath: string, data: string) => Promise<{ success: boolean; error?: string }>
       getUserDataPath: () => Promise<string>
+      notifyReady: () => void
+      onMenuAction: (callback: (action: string) => void) => () => void
+      onOpenProjectFile: (callback: (filePath: string) => void) => () => void
       onDisplaySlide: (callback: (data: unknown) => void) => () => void
       onOutputSettingsChanged: (callback: (settings: unknown) => void) => () => void
       onOutputWindowOpened: (callback: () => void) => () => void
       onOutputWindowClosed: (callback: () => void) => () => void
-      getDisplays: () => Promise<Array<{
-        id: number
-        label: string
-        width: number
-        height: number
-        x: number
-        y: number
-        isPrimary: boolean
-        scaleFactor: number
-      }>>
     }
   }
 }

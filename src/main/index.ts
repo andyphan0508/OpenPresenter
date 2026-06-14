@@ -1,10 +1,39 @@
-import { app, shell, BrowserWindow, ipcMain, screen, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { setupIPC } from './ipc'
+import { buildAppMenu } from './menu'
 
 let mainWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
+
+// Path of a .opres file the OS asked us to open (double-click / "Open with").
+// Held until the renderer signals it is ready to receive it.
+let pendingOpenFile: string | null = null
+let rendererReady = false
+
+const PROJECT_EXT = '.opres'
+
+/** Pick the first .opres path out of a process argv array, if any. */
+function projectPathFromArgv(argv: string[]): string | null {
+  const found = argv.find((a) => a.toLowerCase().endsWith(PROJECT_EXT))
+  return found || null
+}
+
+function deliverOpenFile(filePath: string): void {
+  pendingOpenFile = filePath
+  if (rendererReady && mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('open-project-file', filePath)
+    pendingOpenFile = null
+    mainWindow.focus()
+  }
+}
+
+// macOS delivers file-open requests via this event (can fire before app is ready).
+app.on('open-file', (event, filePath) => {
+  event.preventDefault()
+  deliverOpenFile(filePath)
+})
 
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
@@ -77,6 +106,21 @@ function createOutputWindow(): BrowserWindow {
   return win
 }
 
+// Ensure a single instance so file-association opens reuse the running app.
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const filePath = projectPathFromArgv(argv)
+    if (filePath) deliverOpenFile(filePath)
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+}
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.openpresenter')
 
@@ -84,7 +128,20 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
+  // On Windows/Linux the file path arrives as a launch argument.
+  if (process.platform !== 'darwin' && !pendingOpenFile) {
+    const fromArgv = projectPathFromArgv(process.argv)
+    if (fromArgv) pendingOpenFile = fromArgv
+  }
+
   mainWindow = createMainWindow()
+  buildAppMenu(() => mainWindow)
+
+  // The renderer tells us when it can accept an open-file request.
+  ipcMain.on('renderer-ready', () => {
+    rendererReady = true
+    if (pendingOpenFile) deliverOpenFile(pendingOpenFile)
+  })
 
   setupIPC({
     getMainWindow: () => mainWindow,

@@ -3,12 +3,17 @@ import { v4 as uuidv4 } from 'uuid'
 import {
   Presentation,
   Slide,
+  SlideBackground,
   TextBlock,
   Song,
+  SongSlide,
+  SongStyle,
+  MediaItem,
   OutputSettings,
-  MediaFile,
+  ProjectData,
   DEFAULT_OUTPUT_SETTINGS,
-  DEFAULT_TEXT_BLOCK
+  DEFAULT_TEXT_BLOCK,
+  DEFAULT_SONG_STYLE
 } from '../types'
 
 interface AppState {
@@ -20,9 +25,7 @@ interface AppState {
 
   // Library
   songs: Song[]
-
-  // Media files
-  mediaFiles: MediaFile[]
+  media: MediaItem[]
 
   // Output
   outputEnabled: boolean
@@ -33,6 +36,10 @@ interface AppState {
   selectedSongId: string | null
   editingSlideId: string | null
   theme: 'dark' | 'light'
+
+  // Project file
+  currentFilePath: string | null
+  dirty: boolean
 
   // Actions - Presentation
   createPresentation: (name: string) => string
@@ -46,9 +53,11 @@ interface AppState {
   deleteSlide: (presentationId: string, slideId: string) => void
   updateSlide: (presentationId: string, slideId: string, updates: Partial<Slide>) => void
   reorderSlides: (presentationId: string, slides: Slide[]) => void
+  moveSlide: (presentationId: string, from: number, to: number) => void
   setCurrentSlide: (slideId: string | null) => void
   setLiveSlide: (slideId: string | null) => void
   duplicateSlide: (presentationId: string, slideId: string) => void
+  applyBackgroundToAll: (presentationId: string, background: SlideBackground) => void
 
   // Actions - Text Blocks
   addTextBlock: (presentationId: string, slideId: string) => string
@@ -63,12 +72,14 @@ interface AppState {
   // Actions - Songs
   addSong: (song: Omit<Song, 'id' | 'createdAt' | 'updatedAt'>) => string
   updateSong: (id: string, updates: Partial<Song>) => void
+  updateSongFromMarkdown: (id: string, markdown: string) => void
+  updateSongStyle: (id: string, style: Partial<SongStyle>) => void
   deleteSong: (id: string) => void
   importSongFromMarkdown: (markdown: string, category: Song['category']) => string
 
-  // Actions - Media
-  addMediaFile: (file: Omit<MediaFile, 'id' | 'createdAt'>) => string
-  removeMediaFile: (id: string) => void
+  // Actions - Media library
+  addMedia: (item: Omit<MediaItem, 'id' | 'createdAt'>) => string
+  deleteMedia: (id: string) => void
 
   // Actions - Output
   setOutputEnabled: (enabled: boolean) => void
@@ -79,6 +90,12 @@ interface AppState {
   setSelectedSong: (id: string | null) => void
   setEditingSlide: (id: string | null) => void
   toggleTheme: () => void
+
+  // Actions - Project file
+  setProjectFile: (path: string | null) => void
+  markDirty: () => void
+  loadProjectData: (data: ProjectData) => void
+  exportProjectData: () => ProjectData
 
   // Computed helpers
   getCurrentPresentation: () => Presentation | undefined
@@ -136,11 +153,13 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
   for (const line of lines) {
     const trimmed = line.trim()
 
+    // Title: # Song Title
     if (trimmed.startsWith('# ')) {
       title = trimmed.slice(2).trim()
       continue
     }
 
+    // Metadata: ## Author: name
     if (trimmed.startsWith('## Author:')) {
       author = trimmed.slice(10).trim()
       continue
@@ -150,14 +169,15 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
       continue
     }
 
+    // Section header: [Verse 1] or [Chorus] or ## Verse 1
     const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/) || trimmed.match(/^##\s+(.+)$/)
     if (sectionMatch) {
       pushSection()
       const sectionText = sectionMatch[1].toLowerCase()
       let sectionType: Song['slides'][0]['sectionType'] = 'verse'
 
-      for (const [k, type] of Object.entries(sectionPatterns)) {
-        if (sectionText.includes(k)) {
+      for (const [key, type] of Object.entries(sectionPatterns)) {
+        if (sectionText.includes(key)) {
           sectionType = type
           break
         }
@@ -179,6 +199,7 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
 
   pushSection()
 
+  // If no sections found, treat whole content as one slide
   if (slides.length === 0 && markdown.trim()) {
     slides.push({
       id: uuidv4(),
@@ -191,38 +212,67 @@ function parseSongMarkdown(markdown: string): { slides: Song['slides']; title: s
   return { slides, title, author, key }
 }
 
-function songSlideToPresSlide(songSlide: Song['slides'][0], settings: OutputSettings): Slide {
+/** Derive a song style from global output settings (used when a song has no saved style). */
+function styleFromSettings(settings: OutputSettings): SongStyle {
+  return {
+    ...DEFAULT_SONG_STYLE,
+    fontSize: settings.defaultFontSize,
+    fontFamily: settings.defaultFontFamily,
+    color: settings.defaultTextColor,
+    textAlign: settings.defaultTextAlign
+  }
+}
+
+/** Split a section's content into chunks of at most `maxLines` lines (0 = no split). */
+function splitContent(content: string, maxLines: number): string[] {
+  const lines = content.split('\n')
+  if (!maxLines || maxLines <= 0 || lines.length <= maxLines) return [content]
+  const chunks: string[] = []
+  for (let i = 0; i < lines.length; i += maxLines) {
+    chunks.push(lines.slice(i, i + maxLines).join('\n'))
+  }
+  return chunks
+}
+
+function buildTextBlock(content: string, style: SongStyle): TextBlock {
   return {
     id: uuidv4(),
-    background: { type: 'color', value: '#000000' },
-    textBlocks: [
-      {
-        id: uuidv4(),
-        content: songSlide.content,
-        x: 5,
-        y: 15,
-        width: 90,
-        height: 70,
-        fontSize: settings.defaultFontSize,
-        fontFamily: settings.defaultFontFamily,
-        fontWeight: 'bold',
-        fontStyle: 'normal',
-        color: settings.defaultTextColor,
-        textAlign: settings.defaultTextAlign,
-        textShadow: true,
-        shadowColor: '#000000',
-        shadowBlur: 8,
-        lineHeight: 1.4,
-        textTransform: 'none',
-        outline: false,
-        outlineColor: '#000000',
-        outlineWidth: 2
-      }
-    ],
-    notes: `[${songSlide.sectionLabel}]`,
+    content,
+    x: 5,
+    y: 15,
+    width: 90,
+    height: 70,
+    fontSize: style.fontSize,
+    fontFamily: style.fontFamily,
+    fontWeight: style.fontWeight,
+    fontStyle: 'normal',
+    color: style.color,
+    textAlign: style.textAlign,
+    textShadow: style.textShadow,
+    shadowColor: style.shadowColor,
+    shadowBlur: style.shadowBlur,
+    lineHeight: style.lineHeight,
+    textTransform: style.textTransform,
+    outline: style.outline,
+    outlineColor: style.outlineColor,
+    outlineWidth: style.outlineWidth
+  }
+}
+
+/** Convert one song section into one or more presentation slides, applying a style. */
+function songSlideToPresSlides(songSlide: SongSlide, style: SongStyle): Slide[] {
+  const parts = splitContent(songSlide.content, style.maxLinesPerSlide)
+  return parts.map((part, i) => ({
+    id: uuidv4(),
+    background: { ...style.background },
+    textBlocks: [buildTextBlock(part, style)],
+    notes:
+      parts.length > 1
+        ? `[${songSlide.sectionLabel} ${i + 1}/${parts.length}]`
+        : `[${songSlide.sectionLabel}]`,
     transition: 'fade',
     duration: 0
-  }
+  }))
 }
 
 const DEMO_SONGS: Song[] = [
@@ -281,34 +331,10 @@ Vinh hiển và năng quyền`,
     slides: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
-  },
-  {
-    id: uuidv4(),
-    title: 'Tôn Vinh Chúa Hằng Hữu',
-    author: '',
-    category: 'tvchh',
-    key: 'D',
-    tags: ['praise', 'worship'],
-    rawMarkdown: `# Tôn Vinh Chúa Hằng Hữu
-## Key: D
-
-[Verse 1]
-Tôn vinh Chúa hằng hữu
-Đấng ngự trị đời đời
-Mọi loài thọ tạo hát lên
-Ngợi ca danh Ngài tôn cao
-
-[Chorus]
-Hallelujah, Hallelujah
-Ngợi khen Đức Chúa Trời
-Hallelujah, Hallelujah
-Danh Ngài tôn cao muôn đời`,
-    slides: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
   }
 ]
 
+// Parse demo songs
 DEMO_SONGS.forEach((song) => {
   const parsed = parseSongMarkdown(song.rawMarkdown)
   song.slides = parsed.slides
@@ -322,13 +348,15 @@ export const useStore = create<AppState>()((set, get) => ({
   currentSlideId: null,
   liveSlideId: null,
   songs: DEMO_SONGS,
-  mediaFiles: [],
+  media: [],
   outputEnabled: false,
   outputSettings: DEFAULT_OUTPUT_SETTINGS,
   activePanel: 'presentations',
   selectedSongId: null,
   editingSlideId: null,
   theme: 'dark',
+  currentFilePath: null,
+  dirty: false,
 
   createPresentation: (name) => {
     const id = uuidv4()
@@ -384,7 +412,8 @@ export const useStore = create<AppState>()((set, get) => ({
 
   addSlidesFromSong: (presentationId, song) => {
     const { outputSettings } = get()
-    const newSlides = song.slides.map((ss) => songSlideToPresSlide(ss, outputSettings))
+    const style = song.style ?? styleFromSettings(outputSettings)
+    const newSlides = song.slides.flatMap((ss) => songSlideToPresSlides(ss, style))
     set((state) => ({
       presentations: state.presentations.map((p) =>
         p.id === presentationId
@@ -405,9 +434,7 @@ export const useStore = create<AppState>()((set, get) => ({
           p.id === presentationId ? { ...p, slides: newSlides } : p
         ),
         currentSlideId:
-          state.currentSlideId === slideId ? (newSlides[0]?.id ?? null) : state.currentSlideId,
-        editingSlideId:
-          state.editingSlideId === slideId ? null : state.editingSlideId
+          state.currentSlideId === slideId ? (newSlides[0]?.id ?? null) : state.currentSlideId
       }
     })
   },
@@ -429,7 +456,37 @@ export const useStore = create<AppState>()((set, get) => ({
   reorderSlides: (presentationId, slides) => {
     set((state) => ({
       presentations: state.presentations.map((p) =>
-        p.id === presentationId ? { ...p, slides } : p
+        p.id === presentationId ? { ...p, slides, updatedAt: new Date().toISOString() } : p
+      )
+    }))
+  },
+
+  moveSlide: (presentationId, from, to) => {
+    set((state) => {
+      const pres = state.presentations.find((p) => p.id === presentationId)
+      if (!pres) return state
+      if (from < 0 || from >= pres.slides.length || to < 0 || to >= pres.slides.length) return state
+      const slides = [...pres.slides]
+      const [moved] = slides.splice(from, 1)
+      slides.splice(to, 0, moved)
+      return {
+        presentations: state.presentations.map((p) =>
+          p.id === presentationId ? { ...p, slides, updatedAt: new Date().toISOString() } : p
+        )
+      }
+    })
+  },
+
+  applyBackgroundToAll: (presentationId, background) => {
+    set((state) => ({
+      presentations: state.presentations.map((p) =>
+        p.id === presentationId
+          ? {
+              ...p,
+              slides: p.slides.map((s) => ({ ...s, background: { ...background } })),
+              updatedAt: new Date().toISOString()
+            }
+          : p
       )
     }))
   },
@@ -533,6 +590,39 @@ export const useStore = create<AppState>()((set, get) => ({
     }))
   },
 
+  updateSongFromMarkdown: (id, markdown) => {
+    const parsed = parseSongMarkdown(markdown)
+    set((state) => ({
+      songs: state.songs.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              title: parsed.title || s.title,
+              author: parsed.author ?? s.author,
+              key: parsed.key ?? s.key,
+              slides: parsed.slides,
+              rawMarkdown: markdown,
+              updatedAt: new Date().toISOString()
+            }
+          : s
+      )
+    }))
+  },
+
+  updateSongStyle: (id, style) => {
+    set((state) => ({
+      songs: state.songs.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              style: { ...DEFAULT_SONG_STYLE, ...s.style, ...style },
+              updatedAt: new Date().toISOString()
+            }
+          : s
+      )
+    }))
+  },
+
   deleteSong: (id) => {
     set((state) => ({ songs: state.songs.filter((s) => s.id !== id) }))
   },
@@ -550,17 +640,16 @@ export const useStore = create<AppState>()((set, get) => ({
     })
   },
 
-  addMediaFile: (file) => {
+  addMedia: (item) => {
     const id = uuidv4()
-    const now = new Date().toISOString()
     set((state) => ({
-      mediaFiles: [...state.mediaFiles, { ...file, id, createdAt: now }]
+      media: [{ ...item, id, createdAt: new Date().toISOString() }, ...state.media]
     }))
     return id
   },
 
-  removeMediaFile: (id) => {
-    set((state) => ({ mediaFiles: state.mediaFiles.filter((f) => f.id !== id) }))
+  deleteMedia: (id) => {
+    set((state) => ({ media: state.media.filter((m) => m.id !== id) }))
   },
 
   setOutputEnabled: (enabled) => set({ outputEnabled: enabled }),
@@ -574,6 +663,31 @@ export const useStore = create<AppState>()((set, get) => ({
   setEditingSlide: (id) => set({ editingSlideId: id }),
   toggleTheme: () =>
     set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+
+  setProjectFile: (path) => set({ currentFilePath: path, dirty: false }),
+
+  markDirty: () => set((state) => (state.dirty ? state : { dirty: true })),
+
+  loadProjectData: (data) =>
+    set({
+      presentations: data.presentations ?? [],
+      songs: data.songs ?? [],
+      media: data.media ?? [],
+      outputSettings: { ...DEFAULT_OUTPUT_SETTINGS, ...(data.outputSettings ?? {}) },
+      theme: data.theme ?? 'dark',
+      // Reset transient selection/live state for the freshly opened project
+      currentPresentationId: data.presentations?.[0]?.id ?? null,
+      currentSlideId: data.presentations?.[0]?.slides?.[0]?.id ?? null,
+      liveSlideId: null,
+      selectedSongId: null,
+      editingSlideId: null,
+      dirty: false
+    }),
+
+  exportProjectData: () => {
+    const { presentations, songs, media, outputSettings, theme } = get()
+    return { presentations, songs, media, outputSettings, theme }
+  },
 
   getCurrentPresentation: () => {
     const { presentations, currentPresentationId } = get()

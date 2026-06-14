@@ -1,7 +1,16 @@
 export type SlideBackground =
   | { type: 'color'; value: string }
-  | { type: 'image'; url: string; fit: 'cover' | 'contain' | 'fill' }
-  | { type: 'video'; url: string; loop: boolean; muted: boolean }
+  | { type: 'image'; url: string; fit: 'cover' | 'contain' | 'fill'; dim?: number }
+  | { type: 'video'; url: string; loop: boolean; muted: boolean; dim?: number }
+
+/** Reusable media stored in the library (base64 data URLs so they survive restarts). */
+export interface MediaItem {
+  id: string
+  type: 'image' | 'video'
+  name: string
+  url: string
+  createdAt: string
+}
 
 export interface TextBlock {
   id: string
@@ -52,6 +61,26 @@ export interface SongSlide {
   content: string
 }
 
+/** Style template applied to every slide generated from a song. */
+export interface SongStyle {
+  background: SlideBackground
+  fontFamily: string
+  fontSize: number
+  fontWeight: 'normal' | 'bold'
+  color: string
+  textAlign: 'left' | 'center' | 'right'
+  lineHeight: number
+  textShadow: boolean
+  shadowColor: string
+  shadowBlur: number
+  outline: boolean
+  outlineColor: string
+  outlineWidth: number
+  textTransform: 'none' | 'uppercase' | 'lowercase'
+  /** Max lines per slide; longer sections are auto-split. 0 = no split. */
+  maxLinesPerSlide: number
+}
+
 export interface Song {
   id: string
   title: string
@@ -62,8 +91,27 @@ export interface Song {
   tags: string[]
   slides: SongSlide[]
   rawMarkdown: string
+  style?: SongStyle
   createdAt: string
   updatedAt: string
+}
+
+export const DEFAULT_SONG_STYLE: SongStyle = {
+  background: { type: 'color', value: '#000000' },
+  fontFamily: 'sans-serif',
+  fontSize: 72,
+  fontWeight: 'bold',
+  color: '#ffffff',
+  textAlign: 'center',
+  lineHeight: 1.4,
+  textShadow: true,
+  shadowColor: '#000000',
+  shadowBlur: 8,
+  outline: false,
+  outlineColor: '#000000',
+  outlineWidth: 2,
+  textTransform: 'none',
+  maxLinesPerSlide: 0
 }
 
 export interface OutputSettings {
@@ -74,16 +122,15 @@ export interface OutputSettings {
   defaultTextAlign: 'left' | 'center' | 'right'
   showClock: boolean
   clockPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-  targetDisplayId?: number
 }
 
-export interface MediaFile {
-  id: string
-  name: string
-  type: 'image' | 'video'
-  url: string
-  size?: number
-  createdAt: string
+/** The portable contents of a saved project (.opres) file. */
+export interface ProjectData {
+  presentations: Presentation[]
+  songs: Song[]
+  media: MediaItem[]
+  outputSettings: OutputSettings
+  theme: 'dark' | 'light'
 }
 
 export const DEFAULT_OUTPUT_SETTINGS: OutputSettings = {
