@@ -11,6 +11,7 @@ const api = {
     ipcRenderer.send('set-output-fullscreen', fullscreen),
   updateOutputSettings: (settings: unknown) =>
     ipcRenderer.send('update-output-settings', settings),
+  controlOutputVideo: (cmd: unknown) => ipcRenderer.send('output-video-control', cmd),
 
   // File operations
   openFileDialog: (options?: unknown) => ipcRenderer.invoke('open-file-dialog', options),
@@ -46,6 +47,10 @@ const api = {
   onOutputWindowClosed: (callback: () => void) => {
     ipcRenderer.on('output-window-closed', () => callback())
     return () => ipcRenderer.removeAllListeners('output-window-closed')
+  },
+  onVideoControl: (callback: (cmd: unknown) => void) => {
+    ipcRenderer.on('video-control', (_event, cmd) => callback(cmd))
+    return () => ipcRenderer.removeAllListeners('video-control')
   }
 }
 

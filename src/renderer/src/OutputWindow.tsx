@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { Slide, OutputSettings, DEFAULT_OUTPUT_SETTINGS } from './types'
+import { Slide, OutputSettings, DEFAULT_OUTPUT_SETTINGS, VideoControlCommand } from './types'
 
 interface DisplaySlideData {
   slide: Slide | null
@@ -36,6 +36,25 @@ export function OutputWindow() {
   const [settings, setSettings] = useState<OutputSettings>(DEFAULT_OUTPUT_SETTINGS)
   const [transitioning, setTransitioning] = useState(false)
   const prevSlideRef = useRef<Slide | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Apply transport commands from the controller window to the background video.
+  useEffect(() => {
+    const cleanup = window.api.onVideoControl((data: unknown) => {
+      const cmd = data as VideoControlCommand
+      const video = videoRef.current
+      if (!video) return
+      if (cmd.action === 'play') void video.play()
+      else if (cmd.action === 'pause') video.pause()
+      else if (cmd.action === 'restart') {
+        video.currentTime = 0
+        void video.play()
+      } else if (cmd.action === 'seek' && typeof cmd.time === 'number') {
+        video.currentTime = cmd.time
+      }
+    })
+    return cleanup
+  }, [])
 
   useEffect(() => {
     const cleanup = window.api.onDisplaySlide((data: unknown) => {
@@ -87,6 +106,7 @@ export function OutputWindow() {
       {slide && bg?.type === 'video' && bg.url && (
         <video
           key={bg.url}
+          ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
           src={bg.url}
           autoPlay

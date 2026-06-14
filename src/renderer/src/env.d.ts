@@ -12,6 +12,7 @@ declare global {
       clearOutput: () => void
       setOutputFullscreen: (fullscreen: boolean) => void
       updateOutputSettings: (settings: unknown) => void
+      controlOutputVideo: (cmd: unknown) => void
       openFileDialog: (options?: unknown) => Promise<{ canceled: boolean; filePaths: string[] }>
       saveFileDialog: (options?: unknown) => Promise<{ canceled: boolean; filePath?: string }>
       readFile: (filePath: string) => Promise<{ success: boolean; data?: string; path?: string; error?: string }>
@@ -24,6 +25,7 @@ declare global {
       onOutputSettingsChanged: (callback: (settings: unknown) => void) => () => void
       onOutputWindowOpened: (callback: () => void) => () => void
       onOutputWindowClosed: (callback: () => void) => () => void
+      onVideoControl: (callback: (cmd: unknown) => void) => () => void
     }
   }
 }

@@ -114,6 +114,13 @@ export const DEFAULT_SONG_STYLE: SongStyle = {
   maxLinesPerSlide: 0
 }
 
+/** A playback command sent to (and mirrored across) background video elements. */
+export interface VideoControlCommand {
+  action: 'play' | 'pause' | 'seek' | 'restart'
+  /** Target time in seconds, for the `seek` action. */
+  time?: number
+}
+
 export interface OutputSettings {
   backgroundColor: string
   defaultFontSize: number

@@ -98,6 +98,14 @@ export function setupIPC(ctx: IPCContext): void {
     }
   })
 
+  // Background video playback control — forward transport commands to the output window
+  ipcMain.on('output-video-control', (_event, cmd) => {
+    const output = ctx.getOutputWindow()
+    if (output && !output.isDestroyed()) {
+      output.webContents.send('video-control', cmd)
+    }
+  })
+
   // Fullscreen toggle for output
   ipcMain.on('set-output-fullscreen', (_event, fullscreen: boolean) => {
     const output = ctx.getOutputWindow()

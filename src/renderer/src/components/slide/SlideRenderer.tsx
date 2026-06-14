@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { Slide, SlideBackground } from '../../types'
 
 const DESIGN_WIDTH = 1920
@@ -9,6 +9,8 @@ interface SlideRendererProps {
   className?: string
   isOutput?: boolean
   backgroundColor?: string
+  /** Forwarded to the background `<video>` element so callers can drive playback. */
+  videoRef?: React.Ref<HTMLVideoElement>
 }
 
 function DimOverlay({ dim }: { dim?: number }) {
@@ -16,7 +18,15 @@ function DimOverlay({ dim }: { dim?: number }) {
   return <div className="absolute inset-0" style={{ backgroundColor: '#000', opacity: dim }} />
 }
 
-function BackgroundLayer({ bg, isOutput }: { bg: SlideBackground; isOutput: boolean }) {
+function BackgroundLayer({
+  bg,
+  isOutput,
+  videoRef
+}: {
+  bg: SlideBackground
+  isOutput: boolean
+  videoRef?: React.Ref<HTMLVideoElement>
+}) {
   if (bg.type === 'color') {
     return <div className="absolute inset-0" style={{ backgroundColor: bg.value }} />
   }
@@ -40,6 +50,7 @@ function BackgroundLayer({ bg, isOutput }: { bg: SlideBackground; isOutput: bool
     return (
       <>
         <video
+          ref={videoRef}
           className="absolute inset-0 w-full h-full object-cover"
           src={bg.url}
           autoPlay
@@ -58,7 +69,8 @@ export function SlideRenderer({
   slide,
   className = '',
   isOutput = false,
-  backgroundColor = '#000000'
+  backgroundColor = '#000000',
+  videoRef
 }: SlideRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
@@ -100,7 +112,7 @@ export function SlideRenderer({
           transformOrigin: 'top left'
         }}
       >
-        <BackgroundLayer bg={slide.background} isOutput={isOutput} />
+        <BackgroundLayer bg={slide.background} isOutput={isOutput} videoRef={videoRef} />
 
         {slide.textBlocks.map((block) => {
           const shadowStyle = block.textShadow

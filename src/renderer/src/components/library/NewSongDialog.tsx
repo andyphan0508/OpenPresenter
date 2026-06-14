@@ -7,9 +7,11 @@ import { CATEGORY_LABELS, SECTION_DOT_COLORS } from './constants'
 interface NewSongDialogProps {
   open: boolean
   category: Song['category']
+  /** Whether a presentation is currently open (enables "add straight to slides"). */
+  hasPres: boolean
   onClose: () => void
   onCategoryChange: (cat: Song['category']) => void
-  onImport: (markdown: string) => void
+  onImport: (markdown: string, addToPresentation: boolean) => void
   onShowSyntaxGuide: () => void
 }
 
@@ -45,6 +47,7 @@ function emptySection(type: SongSection = 'verse'): FormSection {
 export function NewSongDialog({
   open,
   category,
+  hasPres,
   onClose,
   onCategoryChange,
   onImport,
@@ -119,10 +122,10 @@ export function NewSongDialog({
   const simpleValid = title.trim().length > 0 && sections.some((s) => s.lyrics.trim().length > 0)
   const canImport = mode === 'simple' ? simpleValid : markdown.trim().length > 0
 
-  const handleImport = () => {
+  const handleImport = (addToPresentation: boolean) => {
     const md = mode === 'simple' ? buildMarkdownFromForm() : markdown
     if (!md.trim()) return
-    onImport(md)
+    onImport(md, addToPresentation)
   }
 
   return (
@@ -318,12 +321,25 @@ export function NewSongDialog({
               Hủy
             </button>
             <button
-              onClick={handleImport}
+              onClick={() => handleImport(false)}
               disabled={!canImport}
-              className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed ${
+                hasPres
+                  ? 'bg-surface hover:bg-hover-2 text-primary border border-app'
+                  : 'bg-orange-500 hover:bg-orange-600 text-white'
+              }`}
             >
-              Thêm bài hát
+              Thêm vào thư viện
             </button>
+            {hasPres && (
+              <button
+                onClick={() => handleImport(true)}
+                disabled={!canImport}
+                className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Thêm & đưa vào slide
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -55,9 +55,14 @@ export function LibraryPanel() {
 
   // ── Handlers ──────────────────────────────────────────────────────
 
-  const handleImportSong = (markdown: string) => {
+  const handleImportSong = (markdown: string, addToPresentation: boolean) => {
     if (!markdown.trim()) return;
     const newId = importSongFromMarkdown(markdown, newSongCategory);
+    // Optionally push the freshly imported song straight onto the current presentation.
+    if (addToPresentation && currentPresentationId) {
+      const song = useStore.getState().songs.find((s) => s.id === newId);
+      if (song) addSlidesFromSong(currentPresentationId, song);
+    }
     setShowNewSongDialog(false);
     setSelectedSong(newId);
     setIsEditingMarkdown(false);
@@ -190,6 +195,7 @@ export function LibraryPanel() {
       <NewSongDialog
         open={showNewSongDialog}
         category={newSongCategory}
+        hasPres={!!pres}
         onClose={() => setShowNewSongDialog(false)}
         onCategoryChange={setNewSongCategory}
         onImport={handleImportSong}
