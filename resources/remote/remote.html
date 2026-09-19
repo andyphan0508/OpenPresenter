@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#121212" />
+<title>OpenPresenter Remote</title>
+<style>
+  :root { --bg:#121212; --panel:#1c1c1c; --surface:#262626; --line:#333; --fg:#f2f2f2; --muted:#9a9a9a; --live:#f97316; --select:#3b82f6; --danger:#ef4444; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; font:15px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:var(--bg); color:var(--fg); }
+  button { font:inherit; color:inherit; border:0; cursor:pointer; min-height:44px; border-radius:10px; }
+  button:focus-visible, input:focus-visible { outline:2px solid var(--select); outline-offset:2px; }
+  header { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--danger); flex:none; }
+  .dot.on { background:#22c55e; }
+  main { padding:12px 16px 200px; }
+  .now { background:var(--surface); border:2px solid var(--live); border-radius:12px; padding:12px; margin-bottom:14px; }
+  .now small { color:var(--live); font-weight:700; text-transform:uppercase; letter-spacing:.05em; font-size:12px; }
+  .now p { margin:6px 0 0; white-space:pre-wrap; font-size:17px; font-weight:600; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:18px 0 8px; }
+  .slides { display:grid; gap:6px; }
+  .slide { text-align:left; background:var(--panel); border:1px solid var(--line); padding:10px 12px; display:flex; gap:10px; align-items:flex-start; }
+  .slide.live { border-color:var(--live); background:rgba(249,115,22,.14); }
+  .slide b { font-size:12px; color:var(--muted); min-width:64px; }
+  .slide span { white-space:pre-wrap; font-size:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .controls { position:fixed; left:0; right:0; bottom:0; background:var(--panel); border-top:1px solid var(--line); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:grid; gap:8px; }
+  .nav { display:grid; grid-template-columns:1fr 2fr; gap:8px; }
+  .nav button { min-height:64px; font-size:18px; font-weight:700; background:var(--surface); }
+  .nav .next { background:var(--select); color:#fff; }
+  .clear { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .clear button { background:var(--surface); font-size:14px; }
+  .clear .all { background:var(--danger); color:#fff; font-weight:700; }
+  #login { max-width:320px; margin:18vh auto; padding:0 16px; text-align:center; }
+  #login input { width:100%; font-size:28px; letter-spacing:.4em; text-align:center; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--fg); margin:16px 0; }
+  #login button { width:100%; background:var(--select); color:#fff; font-weight:700; }
+  .err { color:var(--danger); min-height:20px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<section id="login">
+  <h1>OpenPresenter</h1>
+  <p>Nhập mã PIN hiện trong phần Cài đặt → Điều khiển từ xa</p>
+  <input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="8" aria-label="Mã PIN" />
+  <button id="go">Kết nối</button>
+  <p class="err" id="err" role="alert"></p>
+</section>
+
+<div id="app" hidden>
+  <header><h1 id="title">Chưa mở chương trình</h1><span class="dot" id="dot" aria-label="Trạng thái kết nối"></span></header>
+  <main>
+    <div class="now"><small id="nowLabel">Màn hình trống</small><p id="nowText"></p></div>
+    <div id="items"></div>
+  </main>
+  <div class="controls">
+    <div class="nav"><button id="prev" aria-label="Slide trước">◀ Trước</button><button id="next" class="next" aria-label="Slide kế">Kế tiếp ▶</button></div>
+    <div class="clear">
+      <button class="all" data-clear="all">Xóa hết</button>
+      <button data-clear="text">Ẩn chữ</button>
+      <button data-clear="media">Ẩn nền</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id)
+  let pin = localStorage.getItem('op-pin') || ''
+  let source = null
+
+  const send = (action) =>
+    fetch('/action?pin=' + encodeURIComponent(pin), { method: 'POST', body: JSON.stringify(action) }).then((r) => {
+      if (r.status === 401) logout('PIN không đúng')
+    })
+
+  function logout(msg) {
+    source && source.close()
+    localStorage.removeItem('op-pin')
+    $('app').hidden = true
+    $('login').hidden = false
+    $('err').textContent = msg || ''
+  }
+
+  function render(s) {
+    $('title').textContent = s.presentation || 'Chưa mở chương trình'
+    $('nowLabel').textContent = s.live ? (s.live.label || 'Đang chiếu') : 'Màn hình trống'
+    $('nowText').textContent = s.live ? s.live.text : ''
+    const box = $('items')
+    box.textContent = ''
+    for (const item of s.items || []) {
+      const h = document.createElement('h2')
+      h.textContent = item.title
+      const list = document.createElement('div')
+      list.className = 'slides'
+      for (const slide of item.slides) {
+        const b = document.createElement('button')
+        b.className = 'slide' + (slide.id === s.liveSlideId ? ' live' : '')
+        const label = document.createElement('b')
+        label.textContent = slide.label || ''
+        const text = document.createElement('span')
+        text.textContent = slide.text
+        b.append(label, text)
+        b.onclick = () => send({ type: 'goto', slideId: slide.id })
+        list.append(b)
+      }
+      box.append(h, list)
+    }
+    document.querySelector('.slide.live')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }
+
+  function connect() {
+    source = new EventSource('/events?pin=' + encodeURIComponent(pin))
+    source.onopen = () => {
+      localStorage.setItem('op-pin', pin)
+      $('login').hidden = true
+      $('app').hidden = false
+      $('dot').classList.add('on')
+    }
+    source.onmessage = (e) => render(JSON.parse(e.data))
+    source.onerror = () => {
+      $('dot').classList.remove('on')
+      // Wrong PIN → the server answers 401 and the stream closes for good.
+      if (source.readyState === EventSource.CLOSED && $('app').hidden) logout('PIN không đúng hoặc máy chủ đã tắt')
+    }
+  }
+
+  $('go').onclick = () => { pin = $('pin').value.trim(); connect() }
+  $('pin').onkeydown = (e) => e.key === 'Enter' && $('go').click()
+  $('prev').onclick = () => send({ type: 'prev' })
+  $('next').onclick = () => send({ type: 'next' })
+  document.querySelectorAll('[data-clear]').forEach((b) => (b.onclick = () => send({ type: 'clear', what: b.dataset.clear })))
+  if (pin) connect()
+</script>
+</body>
+</html>

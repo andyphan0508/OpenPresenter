@@ -2,99 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* ─── Design tokens (RGB triplets so Tailwind opacity modifiers work) ───
+   Dark = ProPresenter-like operator console. Text tokens keep ≥4.5:1 on panel, `faint` is decorative only. */
+:root,
+.dark {
+  --c-app: 18 18 18;
+  --c-panel: 28 28 28;
+  --c-surface: 38 38 38;
+  --c-raised: 48 48 48;
+  --c-line: 46 46 46;
+  --c-line-strong: 64 64 64;
+  --c-fg: 242 242 242;
+  --c-fg-2: 190 190 190;
+  --c-muted: 150 150 150;
+  --c-faint: 105 105 105;
+  --c-live: 249 115 22;
+  --c-select: 59 130 246;
+  --c-danger: 239 68 68;
+  color-scheme: dark;
 }
 
-html, body, #root {
+.light {
+  --c-app: 236 238 241;
+  --c-panel: 255 255 255;
+  --c-surface: 243 244 246;
+  --c-raised: 229 231 235;
+  --c-line: 226 229 233;
+  --c-line-strong: 203 208 214;
+  --c-fg: 17 24 39;
+  --c-fg-2: 55 65 81;
+  --c-muted: 75 85 99;
+  --c-faint: 156 163 175;
+  --c-live: 234 88 12;
+  --c-select: 37 99 235;
+  --c-danger: 220 38 38;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  margin: 0;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Semantic theme classes ─── */
 @layer components {
-  /* Backgrounds */
-  .bg-app       { @apply bg-gray-100 dark:bg-[#1a1a1a]; }
-  .bg-panel     { @apply bg-white dark:bg-[#1e1e1e]; }
-  .bg-surface   { @apply bg-gray-200 dark:bg-[#2a2a2a]; }
-  .bg-surface-2 { @apply bg-gray-50 dark:bg-[#181818]; }
-  .bg-hover     { @apply hover:bg-gray-200 dark:hover:bg-[#2a2a2a]; }
-  .bg-hover-2   { @apply hover:bg-gray-300 dark:hover:bg-[#3a3a3a]; }
-
-  /* Borders */
-  .border-app   { @apply border-gray-200 dark:border-[#2a2a2a]; }
-  .border-app-2 { @apply border-gray-300 dark:border-[#3a3a3a]; }
-
-  /* Text */
-  .text-primary   { @apply text-gray-900 dark:text-white; }
-  .text-secondary { @apply text-gray-600 dark:text-[#aaa]; }
-  .text-muted     { @apply text-gray-500 dark:text-[#666]; }
-  .text-faint     { @apply text-gray-400 dark:text-[#444]; }
-
-  /* Input */
-  .input-base {
-    @apply bg-gray-100 dark:bg-[#1a1a1a] border border-gray-300 dark:border-[#333]
-           text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-[#555]
-           focus:border-orange-500 outline-none rounded;
+  .input {
+    @apply w-full rounded-md border border-line-strong bg-app px-2.5 py-1.5 text-[13px] text-fg placeholder:text-faint
+           outline-none transition-colors focus:border-select;
   }
-
-  /* Label */
-  .label-xs { @apply text-xs text-muted font-medium uppercase tracking-wider; }
-
-  /* Surface card */
-  .card {
-    @apply bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#2a2a2a] rounded-lg;
+  .label {
+    @apply mb-1 block text-2xs font-semibold uppercase tracking-wider text-muted;
   }
-
-  /* Section color pills */
-  .section-verse      { @apply bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/40; }
-  .section-chorus     { @apply bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700/40; }
-  .section-bridge     { @apply bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/40; }
-  .section-pre-chorus { @apply bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700/40; }
-  .section-intro      { @apply bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700/40; }
-  .section-outro      { @apply bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-700/40; }
-  .section-tag        { @apply bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700/40; }
+  .panel-title {
+    @apply text-2xs font-semibold uppercase tracking-wider text-muted;
+  }
 }
 
-/* Draggable title bar */
+/* Visible keyboard focus everywhere (never removed, only styled). */
+:focus-visible {
+  outline: 2px solid rgb(var(--c-select));
+  outline-offset: 2px;
+}
+
 .app-drag { -webkit-app-region: drag; }
-.no-drag  { -webkit-app-region: no-drag; }
+.no-drag { -webkit-app-region: no-drag; }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 3px; }
-.dark ::-webkit-scrollbar-thumb { background: #3a3a3a; }
-::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+::-webkit-scrollbar-thumb { background: rgb(var(--c-line-strong)); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--c-faint)); background-clip: content-box; }
 
-/* Prose (markdown) */
-.prose { color: #555; }
-.dark .prose { color: #ccc; }
-.prose h1 { font-size: 1.3em; font-weight: 700; margin-bottom: 0.5em; color: #111; }
-.dark .prose h1 { color: #fff; }
-.prose h2 { font-size: 1.1em; font-weight: 600; margin-top: 1em; margin-bottom: 0.3em; color: #333; }
-.dark .prose h2 { color: #eee; }
-.prose p { margin-bottom: 0.5em; line-height: 1.6; }
-.prose code { background: #e5e7eb; padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.85em; color: #f97316; }
-.dark .prose code { background: #2a2a2a; }
-.prose pre { background: #f3f4f6; padding: 1em; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; margin: 0.8em 0; }
-.dark .prose pre { background: #1a1a1a; border-color: #333; }
-.prose pre code { background: none; color: #374151; padding: 0; }
-.dark .prose pre code { color: #ccc; }
-.prose ul, .prose ol { padding-left: 1.5em; margin-bottom: 0.5em; }
-.prose li { margin-bottom: 0.2em; }
-
-/* Slide fade animation */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.slide-fade-in { animation: fadeIn 0.2s ease-in-out; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
