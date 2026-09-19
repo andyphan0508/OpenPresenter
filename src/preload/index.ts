@@ -1,69 +1,63 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+
+type Kind = 'output' | 'stage'
+type Filter = { name: string; extensions: string[] }
+
+// Subscribe helper returning an unsubscribe function.
+const on = <T extends unknown[]>(channel: string, cb: (...args: T) => void) => {
+  const listener = (_e: Electron.IpcRendererEvent, ...args: unknown[]) => cb(...(args as T))
+  ipcRenderer.on(channel, listener)
+  return () => {
+    ipcRenderer.removeListener(channel, listener)
+  }
+}
 
 const api = {
-  // Output window
-  toggleOutput: () => ipcRenderer.invoke('toggle-output'),
-  getOutputState: () => ipcRenderer.invoke('get-output-state'),
-  showSlide: (slideData: unknown) => ipcRenderer.send('show-slide', slideData),
-  clearOutput: () => ipcRenderer.send('clear-output'),
-  setOutputFullscreen: (fullscreen: boolean) =>
-    ipcRenderer.send('set-output-fullscreen', fullscreen),
-  updateOutputSettings: (settings: unknown) =>
-    ipcRenderer.send('update-output-settings', settings),
-  controlOutputVideo: (cmd: unknown) => ipcRenderer.send('output-video-control', cmd),
-
-  // File operations
-  openFileDialog: (options?: unknown) => ipcRenderer.invoke('open-file-dialog', options),
-  saveFileDialog: (options?: unknown) => ipcRenderer.invoke('save-file-dialog', options),
-  readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
-  writeFile: (filePath: string, data: string) => ipcRenderer.invoke('write-file', filePath, data),
-  getUserDataPath: () => ipcRenderer.invoke('get-user-data-path'),
-
-  // Project file / menu integration
-  notifyReady: () => ipcRenderer.send('renderer-ready'),
-  onMenuAction: (callback: (action: string) => void) => {
-    ipcRenderer.on('menu-action', (_event, action) => callback(action))
-    return () => ipcRenderer.removeAllListeners('menu-action')
+  display: {
+    toggle: (kind: Kind): Promise<boolean> => ipcRenderer.invoke('display:toggle', kind),
+    isOpen: (kind: Kind): Promise<boolean> => ipcRenderer.invoke('display:is-open', kind),
+    ready: (kind: Kind) => ipcRenderer.send('display:ready', kind),
+    sendOutput: (payload: unknown) => ipcRenderer.send('display:output', payload),
+    sendStage: (payload: unknown) => ipcRenderer.send('display:stage', payload),
+    onOutput: (cb: (payload: unknown) => void) => on('output:payload', cb),
+    onStage: (cb: (payload: unknown) => void) => on('stage:payload', cb),
+    onChanged: (cb: (kind: Kind, open: boolean) => void) => on('display-changed', cb)
   },
-  onOpenProjectFile: (callback: (filePath: string) => void) => {
-    ipcRenderer.on('open-project-file', (_event, filePath) => callback(filePath))
-    return () => ipcRenderer.removeAllListeners('open-project-file')
+  storage: {
+    load: (): Promise<string | null> => ipcRenderer.invoke('storage:load'),
+    save: (json: string): boolean => ipcRenderer.sendSync('storage:save', json)
   },
-
-  // Listeners
-  onDisplaySlide: (callback: (data: unknown) => void) => {
-    ipcRenderer.on('display-slide', (_event, data) => callback(data))
-    return () => ipcRenderer.removeAllListeners('display-slide')
+  bible: {
+    chapterCounts: (version: string): Promise<Record<string, number>> => ipcRenderer.invoke('bible:chapter-counts', version),
+    chapter: (version: string, book: string, n: number): Promise<string[]> => ipcRenderer.invoke('bible:chapter', version, book, n)
   },
-  onOutputSettingsChanged: (callback: (settings: unknown) => void) => {
-    ipcRenderer.on('output-settings-changed', (_event, settings) => callback(settings))
-    return () => ipcRenderer.removeAllListeners('output-settings-changed')
+  files: {
+    openText: (filters: Filter[], multiple = false): Promise<{ name: string; content: string }[]> =>
+      ipcRenderer.invoke('file:open-text', filters, multiple),
+    saveText: (defaultName: string, content: string, filters: Filter[]): Promise<string | null> =>
+      ipcRenderer.invoke('file:save-text', defaultName, content, filters),
+    pickMedia: (imagesOnly = false): Promise<{ path: string; name: string; type: 'image' | 'video' }[]> =>
+      ipcRenderer.invoke('file:pick-media', imagesOnly)
   },
-  onOutputWindowOpened: (callback: () => void) => {
-    ipcRenderer.on('output-window-opened', () => callback())
-    return () => ipcRenderer.removeAllListeners('output-window-opened')
+  net: {
+    fetchText: (url: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('net:fetch-text', url)
   },
-  onOutputWindowClosed: (callback: () => void) => {
-    ipcRenderer.on('output-window-closed', () => callback())
-    return () => ipcRenderer.removeAllListeners('output-window-closed')
-  },
-  onVideoControl: (callback: (cmd: unknown) => void) => {
-    ipcRenderer.on('video-control', (_event, cmd) => callback(cmd))
-    return () => ipcRenderer.removeAllListeners('video-control')
+  remote: {
+    configure: (enabled: boolean, port: number, pin: string): Promise<RemoteStatus> =>
+      ipcRenderer.invoke('remote:configure', enabled, port, pin),
+    status: (): Promise<RemoteStatus> => ipcRenderer.invoke('remote:status'),
+    publish: (state: unknown) => ipcRenderer.send('remote:publish', state),
+    onAction: (cb: (action: unknown) => void) => on('remote:action', cb)
   }
 }
 
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore
-  window.electron = electronAPI
-  // @ts-ignore
-  window.api = api
+export interface RemoteStatus {
+  running: boolean
+  urls: string[]
+  error?: string
 }
+
+export type OpenPresenterApi = typeof api
+
+contextBridge.exposeInMainWorld('api', api)

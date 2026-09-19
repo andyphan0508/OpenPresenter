@@ -1,59 +1,68 @@
-import { useStore } from './useStore'
+import { loadAppData, saveAppData } from '../api/storage'
+import { DEFAULT_APP_SETTINGS, DEFAULT_THEMES } from '../constants/defaults'
+import { migrateSong } from '../helpers/songFactory'
+import { useStore, type AppState } from './index'
 
-const STORAGE_KEY = 'openpresenter-state'
+// Only documents and preferences are saved; live/UI state starts fresh each launch.
+const PERSISTED = [
+  'presentations', 'songs', 'themes', 'media', 'props', 'messages', 'timers', 'outputSettings', 'settings', 'colorScheme'
+] as const satisfies readonly (keyof AppState)[]
 
-export function saveState() {
-  try {
-    const state = useStore.getState()
-    const toSave = {
-      presentations: state.presentations,
-      songs: state.songs,
-      media: state.media,
-      outputSettings: state.outputSettings,
-      theme: state.theme
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
-  } catch (e) {
-    console.error('Failed to save state:', e)
+type Saved = Partial<Pick<AppState, (typeof PERSISTED)[number]>>
+
+const snapshot = (s: AppState): Saved => Object.fromEntries(PERSISTED.map((k) => [k, s[k]]))
+
+// Data saved before themes existed: song/Bible slides get the default theme for their kind.
+function linkLegacySlides(presentations: AppState['presentations'], settings: AppState['settings']) {
+  return presentations.map((p) => ({
+    ...p,
+    slides: p.slides.map((s) =>
+      s.group && !s.themeId
+        ? { ...s, themeId: s.group.kind === 'bible' ? settings.bibleThemeId : settings.songThemeId }
+        : s
+    )
+  }))
+}
+
+function migrate(saved: Saved, current: AppState): Saved {
+  const themes = saved.themes ?? current.themes
+  const settings = { ...DEFAULT_APP_SETTINGS, ...saved.settings }
+  return {
+    ...saved,
+    presentations: saved.themes ? saved.presentations : linkLegacySlides(saved.presentations ?? [], settings),
+    songs: saved.songs?.length ? saved.songs.map(migrateSong) : current.songs,
+    // Built-in themes must exist: settings and slides reference them by id.
+    themes: [...DEFAULT_THEMES.filter((d) => !themes.some((t) => t.id === d.id)), ...themes],
+    settings
   }
 }
 
-export function loadState() {
+export async function loadState(): Promise<void> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = await loadAppData()
     if (!raw) return
-    const saved = JSON.parse(raw)
-
-    useStore.setState((state) => ({
-      presentations: saved.presentations ?? state.presentations,
-      songs: saved.songs?.length ? saved.songs : state.songs,
-      media: saved.media ?? state.media,
-      outputSettings: saved.outputSettings ?? state.outputSettings,
-      theme: saved.theme ?? state.theme
-    }))
+    useStore.setState((s) => migrate(JSON.parse(raw), s))
   } catch (e) {
     console.error('Failed to load state:', e)
   }
 }
 
-// Auto-save on store changes (debounced)
-let saveTimer: ReturnType<typeof setTimeout> | null = null
+let timer: ReturnType<typeof setTimeout> | null = null
 
-export function setupAutosave() {
-  loadState()
+function save(): void {
+  timer = null
+  if (!saveAppData(JSON.stringify(snapshot(useStore.getState())))) console.error('Failed to save state')
+}
 
+// Debounced autosave on document changes, plus a final flush when the window closes.
+export async function setupAutosave(): Promise<void> {
+  await loadState()
   useStore.subscribe((state, prev) => {
-    // Mark the project dirty whenever persisted data (not transient UI) changes.
-    const dataChanged =
-      state.presentations !== prev.presentations ||
-      state.songs !== prev.songs ||
-      state.media !== prev.media ||
-      state.outputSettings !== prev.outputSettings
-    if (dataChanged && !state.dirty) {
-      useStore.setState({ dirty: true })
-    }
-
-    if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(saveState, 500)
+    if (PERSISTED.every((k) => state[k] === prev[k])) return
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(save, 500)
+  })
+  window.addEventListener('beforeunload', () => {
+    if (timer) save()
   })
 }

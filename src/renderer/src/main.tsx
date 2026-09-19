@@ -1,28 +1,24 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './assets/index.css'
-import { setupAutosave } from './store/persistence'
 
-// Detect if this is the output window
-const isOutput = new URLSearchParams(window.location.search).get('output') === 'true'
+// One bundle, three windows: ?view=output | stage | (none = operator console).
+const view = new URLSearchParams(window.location.search).get('view')
 
-async function init() {
-  if (isOutput) {
-    const { OutputWindow } = await import('./OutputWindow')
-    ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-      <React.StrictMode>
-        <OutputWindow />
-      </React.StrictMode>
-    )
-  } else {
-    const { App } = await import('./App')
-    setupAutosave()
-    ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    )
+async function root(): Promise<React.ReactNode> {
+  if (view === 'output') {
+    const { OutputWindow } = await import('./windows/OutputWindow')
+    return <OutputWindow />
   }
+  if (view === 'stage') {
+    const { StageWindow } = await import('./windows/StageWindow')
+    return <StageWindow />
+  }
+  const [{ App }, { setupAutosave }] = await Promise.all([import('./windows/App'), import('./store/persistence')])
+  await setupAutosave()
+  return <App />
 }
 
-init()
+root().then((node) =>
+  ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<React.StrictMode>{node}</React.StrictMode>)
+)
