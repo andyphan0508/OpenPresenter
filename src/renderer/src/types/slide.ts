@@ -48,12 +48,15 @@ export interface SlideGroup {
   autoAdvance?: AutoAdvance
 }
 
+// 'slide' = push in from the right (ProPresenter "Push").
+export type SlideTransition = 'none' | 'fade' | 'slide' | 'zoom'
+
 export interface Slide {
   id: string
   background: SlideBackground
   textBlocks: TextBlock[]
   notes: string
-  transition: 'none' | 'fade' | 'slide'
+  transition: SlideTransition
   duration: number
   group?: SlideGroup
   label?: string // e.g. "Chorus", "Giăng 3:16"

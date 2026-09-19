@@ -1,14 +1,20 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { useState } from 'react'
 import { messageText } from '../../helpers/timer'
 import { useClock } from '../../hooks/useClock'
+import { useMediaClockPublisher } from '../../hooks/useMediaClock'
 import { runShowCommand } from '../../store/commands'
 import type { OutputPayload } from '../../types'
-import { SlideView } from '../slides/SlideView'
+import { LiveFrame } from '../output/LiveFrame'
 import { IconButton } from '../ui/IconButton'
+import { MediaTransport } from './MediaTransport'
 
-// Exactly what the audience sees (same payload as the output window).
+// Exactly what the audience sees (same payload as the output window). Its video is the master: it plays the
+// audio (even with no output window open) and the output windows follow its clock.
 export function PreviewPanel({ payload, outputOpen }: { payload: OutputPayload; outputOpen: boolean }) {
   const now = useClock()
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null)
+  useMediaClockPublisher(video)
   const message = payload.message && payload.message.target !== 'stage' ? messageText(payload.message, payload.timers, now) : null
 
   return (
@@ -21,19 +27,11 @@ export function PreviewPanel({ payload, outputOpen }: { payload: OutputPayload; 
         </span>
       </div>
       <div className="px-3">
-        <div className="overflow-hidden rounded-md ring-1 ring-line-strong">
-          <SlideView
-            slide={payload.slide}
-            themes={payload.themes}
-            media={payload.media}
-            layers={payload.layers}
-            props={payload.props}
-            message={message}
-            backgroundColor={payload.settings.backgroundColor}
-            play
-          />
+        <div className="aspect-video overflow-hidden rounded-md ring-1 ring-line-strong">
+          <LiveFrame payload={payload} message={message} master onVideo={setVideo} />
         </div>
       </div>
+      <MediaTransport video={video} />
       <div className="flex items-center justify-center gap-2 pt-2">
         <IconButton label="Slide trước (←)" icon={<CaretLeft size={18} weight="bold" />} onClick={() => runShowCommand({ type: 'prev' })} />
         <IconButton label="Slide kế (→)" icon={<CaretRight size={18} weight="bold" />} onClick={() => runShowCommand({ type: 'next' })} />

@@ -4,7 +4,7 @@ import { orderedSections } from '../../helpers/arrangement'
 import { moveItem, removeItem } from '../../helpers/serviceItems'
 import { createBlankSlide, createThemedSlide, duplicateSlide, type GroupItem } from '../../helpers/slideFactory'
 import { detachTheme } from '../../helpers/theme'
-import type { Presentation, Slide, SlideGroup, Song, TextBlock } from '../../types'
+import type { Presentation, Slide, SlideGroup, SlideTransition, Song, TextBlock } from '../../types'
 import type { AppState, SliceCreator } from '../types'
 
 // Presentations = services (buổi nhóm); slides grouped into service items.
@@ -21,6 +21,7 @@ export interface PresentationSlice {
 
   addSlide: (presId: string) => string
   updateSlide: (presId: string, slideId: string, updates: Partial<Slide>) => void
+  setAllTransitions: (presId: string, transition: SlideTransition) => void
   deleteSlide: (presId: string, slideId: string) => void
   duplicateSlide: (presId: string, slideId: string) => void
   detachSlideTheme: (presId: string, slideId: string) => void
@@ -87,6 +88,9 @@ export const createPresentationSlice: SliceCreator<PresentationSlice> = (set, ge
 
   updateSlide: (presId, slideId, updates) =>
     set((s) => withSlides(s, presId, (slides) => mapSlide(slides, slideId, (sl) => ({ ...sl, ...updates })))),
+
+  setAllTransitions: (presId, transition) =>
+    set((s) => withSlides(s, presId, (slides) => slides.map((sl) => ({ ...sl, transition })))),
 
   deleteSlide: (presId, slideId) =>
     set((s) => {

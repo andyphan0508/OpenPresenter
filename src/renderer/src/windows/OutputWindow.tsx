@@ -6,7 +6,7 @@ import { keyBackground } from '../helpers/keyer'
 import type { OutputPayload } from '../types'
 
 const EMPTY: OutputPayload = {
-  slide: null, media: null, props: [], message: null, timers: [],
+  slide: null, media: null, clock: null, props: [], message: null, timers: [],
   layers: ALL_LAYERS_ON, settings: DEFAULT_OUTPUT_SETTINGS, themes: []
 }
 

@@ -1,10 +1,17 @@
 import { useStore } from '../../store'
-import type { Slide } from '../../types'
+import type { Slide, SlideTransition } from '../../types'
 import { Field } from '../ui/Field'
 import { Tabs } from '../ui/Tabs'
 
+const TRANSITIONS: { id: SlideTransition; label: string }[] = [
+  { id: 'none', label: 'Cắt' },
+  { id: 'fade', label: 'Mờ dần' },
+  { id: 'slide', label: 'Đẩy' },
+  { id: 'zoom', label: 'Phóng' }
+]
+
 export function SlideInspector({ presId, slide }: { presId: string; slide: Slide }) {
-  const updateSlide = useStore((s) => s.updateSlide)
+  const { updateSlide, setAllTransitions } = useStore.getState()
   return (
     <div className="space-y-4">
       <Field label="Nhãn slide" hint="Hiện trên thanh màu dưới ô slide và màn hình sân khấu.">
@@ -14,13 +21,13 @@ export function SlideInspector({ presId, slide }: { presId: string; slide: Slide
         <span className="label">Chuyển cảnh</span>
         <Tabs
           variant="segmented"
-          value={slide.transition === 'slide' ? 'fade' : slide.transition}
+          value={slide.transition}
           onChange={(transition) => updateSlide(presId, slide.id, { transition })}
-          tabs={[
-            { id: 'none', label: 'Cắt' },
-            { id: 'fade', label: 'Mờ dần' }
-          ]}
+          tabs={TRANSITIONS}
         />
+        <button type="button" onClick={() => setAllTransitions(presId, slide.transition)} className="mt-1.5 cursor-pointer text-2xs text-select hover:underline">
+          Áp dụng cho mọi slide trong buổi nhóm
+        </button>
       </div>
       <Field label="Ghi chú">
         {(id) => (

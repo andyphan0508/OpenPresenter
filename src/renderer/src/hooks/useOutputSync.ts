@@ -14,6 +14,7 @@ export function useOutputSync(): OutputPayload {
       layers: st.layers,
       media: st.media,
       liveMediaId: st.liveMediaId,
+      clock: st.mediaClock,
       props: st.props,
       activePropIds: st.activePropIds,
       messages: st.messages,
@@ -29,6 +30,7 @@ export function useOutputSync(): OutputPayload {
     return {
       slide: slide ?? null,
       media: mediaItem ? mediaBackground(mediaItem) : null,
+      clock: s.clock,
       props: s.props.filter((p) => s.activePropIds.includes(p.id)),
       message: s.messages.find((m) => m.id === s.activeMessageId) ?? null,
       timers: s.timers,

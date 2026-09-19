@@ -1,5 +1,5 @@
 import { ALL_LAYERS_ON } from '../../constants/defaults'
-import type { ClearTarget, OutputLayers } from '../../types'
+import type { ClearTarget, MediaClock, OutputLayers } from '../../types'
 import type { SliceCreator } from '../types'
 
 // What is on the audience screen right now.
@@ -9,6 +9,7 @@ export interface LiveSlice {
   liveMediaId: string | null
   activePropIds: string[]
   activeMessageId: string | null
+  mediaClock: MediaClock | null
 
   goLive: (slideId: string | null) => void
   goNext: () => void
@@ -17,6 +18,7 @@ export interface LiveSlice {
   setLiveMedia: (mediaId: string | null) => void
   toggleProp: (propId: string) => void
   setActiveMessage: (messageId: string | null) => void
+  setMediaClock: (clock: MediaClock | null) => void
 }
 
 export const createLiveSlice: SliceCreator<LiveSlice> = (set, get) => {
@@ -35,6 +37,7 @@ export const createLiveSlice: SliceCreator<LiveSlice> = (set, get) => {
     liveMediaId: null,
     activePropIds: [],
     activeMessageId: null,
+    mediaClock: null,
 
     // Taking a slide live brings the slide layers back (like ProPresenter after a Clear Slide).
     goLive: (slideId) =>
@@ -67,6 +70,8 @@ export const createLiveSlice: SliceCreator<LiveSlice> = (set, get) => {
           : [...s.activePropIds, propId]
       })),
 
-    setActiveMessage: (messageId) => set({ activeMessageId: messageId })
+    setActiveMessage: (messageId) => set({ activeMessageId: messageId }),
+
+    setMediaClock: (mediaClock) => set({ mediaClock })
   }
 }

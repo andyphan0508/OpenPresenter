@@ -15,6 +15,7 @@ export interface MediaItem {
   name: string
   path: string
   type: 'image' | 'video'
+  loop?: boolean // videos play once unless set
 }
 
 export type PropPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'

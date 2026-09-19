@@ -14,6 +14,7 @@ export interface AssetsSlice {
   deleteTheme: (id: string) => void
 
   addMedia: (items: Omit<MediaItem, 'id'>[]) => void
+  updateMedia: (id: string, updates: Partial<MediaItem>) => void
   removeMedia: (id: string) => void
 
   addProp: (prop: Omit<Prop, 'id'>) => void
@@ -40,6 +41,8 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
     set((s) => ({ themes: DEFAULT_THEMES.some((t) => t.id === id) ? s.themes : s.themes.filter((t) => t.id !== id) })),
 
   addMedia: (items) => set((s) => ({ media: [...s.media, ...items.map((m) => ({ ...m, id: uuidv4() }))] })),
+
+  updateMedia: (id, updates) => set((s) => ({ media: s.media.map((m) => (m.id === id ? { ...m, ...updates } : m)) })),
 
   removeMedia: (id) =>
     set((s) => ({ media: s.media.filter((m) => m.id !== id), liveMediaId: s.liveMediaId === id ? null : s.liveMediaId })),

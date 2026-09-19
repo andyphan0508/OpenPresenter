@@ -100,6 +100,13 @@ body {
   background-clip: content-box;
 }
 
+/* Live slide transitions (TransitionStack): op-<transition>-in for the incoming layer, -out for the outgoing one. */
+@keyframes op-fade-in { from { opacity: 0; } }
+@keyframes op-fade-out { to { opacity: 0; } }
+@keyframes op-zoom-in { from { opacity: 0; transform: scale(1.12); } }
+@keyframes op-slide-in { from { transform: translateX(100%); } }
+@keyframes op-slide-out { to { transform: translateX(-100%); } }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

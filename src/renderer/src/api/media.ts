@@ -7,6 +7,6 @@ export const pickMediaFiles = (imagesOnly = false) => window.api.files.pickMedia
 
 export function mediaBackground(item: MediaItem): SlideBackground {
   return item.type === 'video'
-    ? { type: 'video', url: mediaUrl(item.path), loop: true, muted: true }
+    ? { type: 'video', url: mediaUrl(item.path), loop: !!item.loop, muted: false }
     : { type: 'image', url: mediaUrl(item.path), fit: 'cover' }
 }
