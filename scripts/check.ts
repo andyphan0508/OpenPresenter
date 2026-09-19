@@ -10,6 +10,8 @@ import { mergeSongIndex } from '../src/renderer/src/helpers/songRepo'
 import { songMatches } from '../src/renderer/src/helpers/songSearch'
 import { formatSeconds, messageText, pauseTimer, startTimer, timerSeconds } from '../src/renderer/src/helpers/timer'
 import { resolveSlide } from '../src/renderer/src/helpers/theme'
+import { keyBackground } from '../src/renderer/src/helpers/keyer'
+import { fourCC } from '../src/main/services/decklinkService'
 import { useStore } from '../src/renderer/src/store'
 import type { Song, Timer } from '../src/renderer/src/types'
 
@@ -112,5 +114,13 @@ store.clear('all')
 assert.equal(live(), null)
 store.deleteGroup(presId, keyOf('A'))
 assert.deepEqual(titles(), ['B'])
+
+// ── Blackmagic output: DeckLink FourCCs + key canvas per mode
+assert.equal(fourCC('BGRA'), 0x42475241)
+assert.equal(fourCC('Hp30'), 0x48703330)
+assert.equal(keyBackground('external'), 'transparent')
+assert.equal(keyBackground('chroma'), '#00b140')
+assert.equal(keyBackground('full'), undefined)
+assert.equal(keyBackground('bogus'), undefined)
 
 console.log('check: ok')

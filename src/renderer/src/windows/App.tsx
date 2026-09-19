@@ -9,6 +9,7 @@ import { LivePanel } from '../components/live/LivePanel'
 import { SettingsDialog } from '../components/settings/SettingsDialog'
 import { CenterArea } from '../components/show/CenterArea'
 import { useAutoAdvance } from '../hooks/useAutoAdvance'
+import { useDecklink } from '../hooks/useDecklink'
 import { useDisplayWindows } from '../hooks/useDisplayWindows'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useMidi } from '../hooks/useMidi'
@@ -27,6 +28,7 @@ export function App() {
   const stage = useStageSync()
   const remoteStatus = useRemoteBridge()
   const displays = useDisplayWindows()
+  const decklink = useDecklink()
   useKeyboardShortcuts()
   useAutoAdvance()
   useMidi()
@@ -39,7 +41,7 @@ export function App() {
 
   return (
     <div className={`${colorScheme} flex h-screen flex-col overflow-hidden bg-app text-fg`}>
-      <Toolbar displays={displays.open} remoteRunning={remoteStatus.running} onToggleDisplay={displays.toggle} />
+      <Toolbar displays={displays.open} remoteRunning={remoteStatus.running} onToggleDisplay={displays.toggle} decklink={decklink} />
 
       <PanelGroup direction="horizontal" autoSaveId="op-main" className="min-h-0 flex-1">
         <Panel id="left" order={1} defaultSize={19} minSize={14} maxSize={32}>
@@ -69,8 +71,8 @@ export function App() {
 
       <StatusBar />
 
-      {(dialog === 'settings' || dialog === 'remote') && (
-        <SettingsDialog initialTab={dialog === 'remote' ? 'remote' : 'display'} remoteStatus={remoteStatus} onClose={close} />
+      {(dialog === 'settings' || dialog === 'remote' || dialog === 'blackmagic') && (
+        <SettingsDialog initialTab={dialog === 'settings' ? 'display' : dialog} remoteStatus={remoteStatus} decklink={decklink} onClose={close} />
       )}
       {dialog === 'songRepo' && <SongRepoDialog onClose={close} />}
       {dialog === 'shortcuts' && <ShortcutsDialog onClose={close} />}

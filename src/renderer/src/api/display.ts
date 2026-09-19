@@ -10,9 +10,9 @@ export const sendOutput = (payload: OutputPayload) => window.api.display.sendOut
 export const sendStage = (payload: StagePayload) => window.api.display.sendStage(payload)
 
 // Display-window side: subscribe, then tell main we're ready to receive the latest frame.
-export function subscribeOutput(cb: (payload: OutputPayload) => void) {
+export function subscribeOutput(cb: (payload: OutputPayload) => void, kind: 'output' | 'keyer' = 'output') {
   const off = window.api.display.onOutput((p) => cb(p as OutputPayload))
-  window.api.display.ready('output')
+  window.api.display.ready(kind)
   return off
 }
 

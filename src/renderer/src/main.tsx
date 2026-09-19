@@ -2,11 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './assets/index.css'
 
-// One bundle, three windows: ?view=output | stage | (none = operator console).
+// One bundle, several windows: ?view=output | keyer | stage | (none = operator console).
 const view = new URLSearchParams(window.location.search).get('view')
 
 async function root(): Promise<React.ReactNode> {
-  if (view === 'output') {
+  if (view === 'output' || view === 'keyer') {
     const { OutputWindow } = await import('./windows/OutputWindow')
     return <OutputWindow />
   }

@@ -1,6 +1,7 @@
-import { DeviceMobile, GearSix, Monitor, MonitorPlay, Moon, PencilSimple, Presentation, Sun } from '@phosphor-icons/react'
+import { Broadcast, DeviceMobile, GearSix, Monitor, MonitorPlay, Moon, PencilSimple, Presentation, Sun } from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
 import type { DisplayKind } from '../../api/display'
+import type { DecklinkControl } from '../../hooks/useDecklink'
 import { useCurrentPresentation } from '../../hooks/useSelectors'
 import { useStore } from '../../store'
 import { IconButton } from '../ui/IconButton'
@@ -10,6 +11,7 @@ interface ToolbarProps {
   displays: Record<DisplayKind, boolean>
   remoteRunning: boolean
   onToggleDisplay: (kind: DisplayKind) => void
+  decklink: DecklinkControl
 }
 
 function ScreenToggle({ on, label, icon, onClick }: { on: boolean; label: string; icon: ReactNode; onClick: () => void }) {
@@ -31,13 +33,19 @@ function ScreenToggle({ on, label, icon, onClick }: { on: boolean; label: string
 }
 
 // Top bar: mode switch (Show / Edit), current service, screen toggles, remote, settings.
-export function Toolbar({ displays, remoteRunning, onToggleDisplay }: ToolbarProps) {
+export function Toolbar({ displays, remoteRunning, onToggleDisplay, decklink }: ToolbarProps) {
   const mode = useStore((s) => s.mode)
   const setMode = useStore((s) => s.setMode)
   const colorScheme = useStore((s) => s.colorScheme)
   const toggleColorScheme = useStore((s) => s.toggleColorScheme)
   const openDialog = useStore((s) => s.openDialog)
   const pres = useCurrentPresentation()
+
+  // Blackmagic toggle only once the driver is installed; a failed start opens its settings to show why.
+  const toggleDecklink = async () => {
+    if (decklink.status.running) return decklink.stop()
+    if ((await decklink.start()).error) openDialog('blackmagic')
+  }
 
   return (
     <header className="app-drag flex h-12 flex-shrink-0 items-center gap-3 border-b border-line bg-panel pl-20 pr-3">
@@ -67,6 +75,9 @@ export function Toolbar({ displays, remoteRunning, onToggleDisplay }: ToolbarPro
       <div className="no-drag flex items-center gap-2">
         <ScreenToggle on={displays.output} label="Khán phòng" icon={<Monitor size={14} />} onClick={() => onToggleDisplay('output')} />
         <ScreenToggle on={displays.stage} label="Sân khấu" icon={<MonitorPlay size={14} />} onClick={() => onToggleDisplay('stage')} />
+        {decklink.info?.available && (
+          <ScreenToggle on={decklink.status.running} label="Blackmagic" icon={<Broadcast size={14} />} onClick={toggleDecklink} />
+        )}
         <div className="mx-1 h-6 w-px bg-line" />
         <div className="relative">
           <IconButton label="Điều khiển từ điện thoại" icon={<DeviceMobile size={18} />} onClick={() => openDialog('remote')} />

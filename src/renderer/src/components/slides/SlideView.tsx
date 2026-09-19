@@ -47,7 +47,7 @@ export function SlideView({
     <div
       ref={ref}
       className={`relative overflow-hidden ${fill ? 'h-full w-full' : 'aspect-video w-full'} ${className}`}
-      style={{ backgroundColor: fill ? '#000' : backgroundColor }}
+      style={{ backgroundColor: fill && backgroundColor !== 'transparent' ? '#000' : backgroundColor }}
     >
       <div
         className="absolute"

@@ -80,5 +80,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   songThemeId: 'theme-lyrics',
   bibleThemeId: 'theme-scripture',
   bibleSecondary: '',
-  gridSize: 200
+  gridSize: 200,
+  decklinkDevice: 0,
+  decklinkFormat: 'Hp30',
+  decklinkKeyMode: 'luma'
 }

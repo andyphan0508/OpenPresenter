@@ -4,7 +4,7 @@ export type Mode = 'show' | 'edit'
 export type LeftTab = 'service' | 'library'
 export type BottomBin = 'bible' | 'media' | 'themes'
 export type RightTab = 'stage' | 'messages' | 'timers' | 'props'
-export type Dialog = 'settings' | 'remote' | 'songRepo' | 'shortcuts' | null
+export type Dialog = 'settings' | 'remote' | 'blackmagic' | 'songRepo' | 'shortcuts' | null
 
 // Layout/navigation state of the operator console (not persisted except color scheme).
 export interface UiSlice {

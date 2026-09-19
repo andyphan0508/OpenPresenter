@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { registerBibleIpc } from "./ipc/bibleIpc";
+import { registerDecklinkIpc, stopDecklink } from "./ipc/decklinkIpc";
 import { registerDisplayIpc } from "./ipc/displayIpc";
 import { registerFileIpc } from "./ipc/fileIpc";
 import { registerNetIpc } from "./ipc/netIpc";
@@ -15,6 +16,9 @@ import { createMainWindow } from "./windows/mainWindow";
 
 registerMediaScheme();
 
+// The hidden Blackmagic window would otherwise keep the app alive after the console closes.
+const openMainWindow = () => createMainWindow().on("closed", stopDecklink);
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId("com.openpresenter");
   app.on("browser-window-created", (_, window) =>
@@ -28,11 +32,12 @@ app.whenReady().then(() => {
   registerFileIpc();
   registerNetIpc();
   registerRemoteIpc();
+  registerDecklinkIpc();
 
-  createMainWindow();
+  openMainWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
   });
 });
 

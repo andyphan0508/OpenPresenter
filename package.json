@@ -8,7 +8,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "start": "electron-vite dev",
-    "check": "esbuild scripts/check.ts --bundle --platform=node --log-level=warning | node"
+    "check": "esbuild scripts/check.ts --bundle --platform=node --log-level=warning | node",
+    "setup:blackmagic": "npm install --ignore-scripts && cd node_modules/macadam && npx --yes node-gyp rebuild --target=$(node -p \"require('electron/package.json').version\") --dist-url=https://electronjs.org/headers"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -32,5 +33,8 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.12"
+  },
+  "optionalDependencies": {
+    "macadam": "^2.0.18"
   }
 }

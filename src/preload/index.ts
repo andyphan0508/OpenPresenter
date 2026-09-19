@@ -16,7 +16,7 @@ const api = {
   display: {
     toggle: (kind: Kind): Promise<boolean> => ipcRenderer.invoke('display:toggle', kind),
     isOpen: (kind: Kind): Promise<boolean> => ipcRenderer.invoke('display:is-open', kind),
-    ready: (kind: Kind) => ipcRenderer.send('display:ready', kind),
+    ready: (kind: Kind | 'keyer') => ipcRenderer.send('display:ready', kind),
     sendOutput: (payload: unknown) => ipcRenderer.send('display:output', payload),
     sendStage: (payload: unknown) => ipcRenderer.send('display:stage', payload),
     onOutput: (cb: (payload: unknown) => void) => on('output:payload', cb),
@@ -49,6 +49,11 @@ const api = {
     status: (): Promise<RemoteStatus> => ipcRenderer.invoke('remote:status'),
     publish: (state: unknown) => ipcRenderer.send('remote:publish', state),
     onAction: (cb: (action: unknown) => void) => on('remote:action', cb)
+  },
+  decklink: {
+    info: (): Promise<DecklinkInfo> => ipcRenderer.invoke('decklink:info'),
+    start: (cfg: DecklinkConfig): Promise<DecklinkStatus> => ipcRenderer.invoke('decklink:start', cfg),
+    stop: (): Promise<DecklinkStatus> => ipcRenderer.invoke('decklink:stop')
   }
 }
 
@@ -56,6 +61,34 @@ export interface RemoteStatus {
   running: boolean
   urls: string[]
   error?: string
+}
+
+// external = fill + key on two SDI outs (ATEM DSK), internal = device keys over its SDI input,
+// luma / chroma = lyrics on black / green for a luma or chroma key (ATEM USK/DSK), full = normal output.
+export type KeyMode = 'external' | 'internal' | 'luma' | 'chroma' | 'full'
+
+export interface DecklinkConfig {
+  deviceIndex: number
+  format: string // DeckLink display-mode FourCC, e.g. 'Hp30'
+  keyMode: KeyMode
+}
+
+export interface DecklinkDevice {
+  index: number
+  name: string
+  externalKeying: boolean
+  internalKeying: boolean
+}
+
+export interface DecklinkStatus {
+  running: boolean
+  error?: string
+}
+
+export interface DecklinkInfo extends DecklinkStatus {
+  available: boolean
+  devices: DecklinkDevice[]
+  formats: { id: string; label: string }[]
 }
 
 export type OpenPresenterApi = typeof api

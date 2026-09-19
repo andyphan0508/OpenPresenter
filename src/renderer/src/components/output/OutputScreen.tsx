@@ -12,7 +12,8 @@ const CLOCK_POS: Record<OutputSettings['clockPosition'], string> = {
 }
 
 // Audience screen: full-window letterboxed slide + media, props, message and optional clock.
-export function OutputScreen({ payload }: { payload: OutputPayload }) {
+// keyBackground (Blackmagic key feed): lyrics only — no slide/media backgrounds, no clock — over that color.
+export function OutputScreen({ payload, keyBackground }: { payload: OutputPayload; keyBackground?: string }) {
   const now = useClock()
   const [fading, setFading] = useState(false)
   const shownId = useRef<string | undefined>(undefined)
@@ -30,22 +31,24 @@ export function OutputScreen({ payload }: { payload: OutputPayload }) {
 
   const message = payload.message && payload.message.target !== 'stage' ? messageText(payload.message, payload.timers, now) : null
 
+  const layers = keyBackground ? { ...payload.layers, media: false } : payload.layers
+
   return (
-    <div className="relative h-screen w-screen select-none overflow-hidden bg-black">
+    <div className="relative h-screen w-screen select-none overflow-hidden" style={{ backgroundColor: keyBackground ?? '#000' }}>
       <div className="h-full w-full transition-opacity duration-200" style={{ opacity: fading ? 0.15 : 1 }}>
         <SlideView
           slide={payload.slide}
           themes={payload.themes}
           media={payload.media}
-          layers={payload.layers}
+          layers={layers}
           props={payload.props}
           message={message}
-          backgroundColor={payload.settings.backgroundColor}
+          backgroundColor={keyBackground ?? payload.settings.backgroundColor}
           play
           fill
         />
       </div>
-      {payload.settings.showClock && (
+      {payload.settings.showClock && !keyBackground && (
         <div
           className={`absolute ${CLOCK_POS[payload.settings.clockPosition]} font-mono text-2xl text-white/80`}
           style={{ textShadow: '0 2px 4px rgba(0,0,0,.8)' }}

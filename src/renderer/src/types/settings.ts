@@ -1,3 +1,7 @@
+import type { KeyMode } from '../../../preload'
+
+export type { KeyMode }
+
 export type RemoteAction =
   | { type: 'next' }
   | { type: 'prev' }
@@ -25,4 +29,7 @@ export interface AppSettings {
   bibleThemeId: string
   bibleSecondary: '' | 'kjv'
   gridSize: number // slide tile width in px
+  decklinkDevice: number
+  decklinkFormat: string // DeckLink display-mode FourCC; must match the switcher's video standard
+  decklinkKeyMode: KeyMode
 }

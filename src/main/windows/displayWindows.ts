@@ -2,9 +2,10 @@ import { BrowserWindow, screen } from 'electron'
 import { getMainWindow } from './mainWindow'
 import { loadRenderer, preloadPath } from './loadRenderer'
 
-export type DisplayKind = 'output' | 'stage'
+// keyer = hidden offscreen output feeding a Blackmagic device (see keyerWindow.ts).
+export type DisplayKind = 'output' | 'stage' | 'keyer'
 
-const windows: Record<DisplayKind, BrowserWindow | null> = { output: null, stage: null }
+const windows: Record<DisplayKind, BrowserWindow | null> = { output: null, stage: null, keyer: null }
 // Last message per window+channel, replayed when that window reports ready so it never starts blank.
 const lastSent = new Map<string, { kind: DisplayKind; channel: string; data: unknown }>()
 
@@ -18,6 +19,13 @@ export function sendToDisplay(kind: DisplayKind, channel: string, data: unknown)
 export function replayDisplay(kind: DisplayKind): void {
   if (!isDisplayOpen(kind)) return
   for (const m of lastSent.values()) if (m.kind === kind) windows[kind]!.webContents.send(m.channel, m.data)
+}
+
+export function attachDisplay(kind: DisplayKind, win: BrowserWindow): void {
+  windows[kind] = win
+  win.on('closed', () => {
+    if (windows[kind] === win) windows[kind] = null
+  })
 }
 
 function createDisplayWindow(kind: DisplayKind): BrowserWindow {
