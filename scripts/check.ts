@@ -8,6 +8,7 @@ import { migrateSong } from '../src/renderer/src/helpers/songFactory'
 import { parseSongMarkdown, songToMarkdown } from '../src/renderer/src/helpers/songMarkdown'
 import { mergeSongIndex } from '../src/renderer/src/helpers/songRepo'
 import { findSong, lyricsMarkdown, parseProgram, resolveItem, type Program } from '../src/renderer/src/helpers/program'
+import { parseThanhcaPage } from '../src/renderer/src/helpers/thanhca'
 import { songMatches } from '../src/renderer/src/helpers/songSearch'
 import { formatSeconds, messageText, pauseTimer, startTimer, timerSeconds } from '../src/renderer/src/helpers/timer'
 import { resolveSlide } from '../src/renderer/src/helpers/theme'
@@ -123,6 +124,27 @@ assert.equal(keyBackground('external'), 'transparent')
 assert.equal(keyBackground('chroma'), '#00b140')
 assert.equal(keyBackground('full'), undefined)
 assert.equal(keyBackground('bogus'), undefined)
+
+// ── Thánh Ca HTTLVN page → song (chorus printed after each verse becomes the sing order)
+{
+  const page = `<div class="col-xs-6 text-left">W. Sherwin, 1877</div><div class="col-xs-6 text-right">Dịch lời</div>
+    <h1 class="tilte-normal"><small class="center-block"><span class="control-chord-display"></span> Th&#225;nh Ca 100</small> Chúa Mang Thập Hình</h1>
+    <div id="lyric-content"><p><b>Câu 1</b></p><p><i class="chord-group">Ôi</i> Chúa</p><p></p><p>Jê-sus</p>
+    <p><b>Điệp khúc 1</b></p><p>Cứu người</p><p><b>Câu 2</b></p><p>Ôi Chúa chí tôn</p><p><b>Điệp khúc </b></p><p>Cứu người</p></div>`
+  const hymn = parseThanhcaPage(page, 100)!
+  assert.equal(hymn.title, 'Chúa Mang Thập Hình')
+  const song = parseSongMarkdown(hymn.markdown)
+  assert.deepEqual(song.songbooks, [{ book: 'Thánh Ca', number: '100' }])
+  assert.equal(song.author, 'W. Sherwin, 1877 · Dịch lời')
+  assert.deepEqual(song.slides.map((s) => s.sectionLabel), ['Câu 1', 'Điệp khúc 1', 'Câu 2'])
+  assert.equal(song.slides[0].content, 'Ôi Chúa\n\nJê-sus')
+  assert.equal(song.slides[1].sectionType, 'chorus')
+  assert.deepEqual(song.order, ['Câu 1', 'Điệp khúc 1', 'Câu 2', 'Điệp khúc 1'])
+  const long = parseThanhcaPage(`<h1>X</h1><div id="lyric-content">${Array.from({ length: 20 }, (_, i) => `<p>l${i}</p>`).join('')}</div>`, 1)!
+  assert.deepEqual(parseSongMarkdown(long.markdown).slides.map((s) => s.sectionLabel), ['Câu 1', 'Câu 1 – phần 2', 'Câu 1 – phần 3'])
+  assert.equal(parseThanhcaPage('<html>500</html>', 1), undefined)
+  assert.equal(findSong([{ ...useStore.getState().songs[0], songbooks: [{ book: 'Thánh Ca', number: '29' }] }], { title: '', book: 'Thánh Ca', number: '029' })?.songbooks[0].number, '29')
+}
 
 // ── Weekly program sync (dashboard → service)
 {

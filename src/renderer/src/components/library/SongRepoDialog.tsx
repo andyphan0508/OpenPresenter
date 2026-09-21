@@ -1,7 +1,8 @@
-import { CloudArrowDown, DownloadSimple, UploadSimple } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { BookOpen, CloudArrowDown, DownloadSimple, UploadSimple } from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
 import { FILTERS, openTextFiles, saveTextFile } from '../../api/files'
 import { fetchSongIndex } from '../../api/songRepo'
+import { THANHCA_ESTIMATE, crawlThanhca } from '../../api/thanhca'
 import { exportSongIndex, mergeSongIndex, parseSongIndex, type SongIndex } from '../../helpers/songRepo'
 import { useStore } from '../../store'
 import { Button } from '../ui/Button'
@@ -16,6 +17,9 @@ export function SongRepoDialog({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState(savedUrl)
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<{ ok: boolean; text: string } | null>(null)
+  const [crawl, setCrawl] = useState<{ checked: number; found: number } | null>(null)
+  const cancelled = useRef(false)
+  useEffect(() => () => void (cancelled.current = true), []) // closing the dialog stops the crawl
 
   const merge = (index: SongIndex) => {
     const at = new Date().toISOString()
@@ -48,6 +52,19 @@ export function SongRepoDialog({ onClose }: { onClose: () => void }) {
       merge(await fetchSongIndex(url.trim()))
     })
 
+  // Pull the official hymnal straight from HTTLVN into the library; re-running updates it, local edits are kept.
+  const syncThanhca = () =>
+    run(async () => {
+      cancelled.current = false
+      setCrawl({ checked: 0, found: 0 })
+      try {
+        const index = await crawlThanhca((checked, found) => setCrawl({ checked, found }), () => cancelled.current)
+        if (index.songs.length) merge(index)
+      } finally {
+        setCrawl(null)
+      }
+    })
+
   const importFile = () =>
     run(async () => {
       const [file] = await openTextFiles(FILTERS.songIndex)
@@ -78,6 +95,25 @@ export function SongRepoDialog({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </Field>
+
+        <div className="space-y-2 rounded-md border border-line p-3">
+          <p className="text-[13px] leading-relaxed text-fg-2">
+            <strong className="text-fg">Thánh Ca HTTLVN</strong> — tải lời toàn bộ Thánh Ca (khoảng {THANHCA_ESTIMATE} bài) từ{' '}
+            <span className="text-fg">thanhca.httlvn.org</span> vào thư viện, gắn số bài để chương trình tuần tự tìm đúng bài.
+            Mất vài phút; lần sau chỉ cập nhật bài thay đổi.
+          </p>
+          {crawl ? (
+            <div className="flex items-center gap-3">
+              <progress className="h-2 flex-1" max={THANHCA_ESTIMATE} value={Math.min(crawl.checked, THANHCA_ESTIMATE)} aria-label="Tiến độ tải Thánh Ca" />
+              <span className="text-2xs text-muted">{crawl.found} bài</span>
+              <Button size="sm" onClick={() => (cancelled.current = true)}>Dừng</Button>
+            </div>
+          ) : (
+            <Button icon={<BookOpen size={15} />} disabled={busy} onClick={syncThanhca}>
+              Tải Thánh Ca từ HTTLVN
+            </Button>
+          )}
+        </div>
 
         <div className="flex gap-2">
           <Button icon={<UploadSimple size={15} />} disabled={busy} onClick={importFile}>

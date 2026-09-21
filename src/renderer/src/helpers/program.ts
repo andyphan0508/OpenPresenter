@@ -58,7 +58,8 @@ export const programName = (p: Program) => p.title || `Chúa Nhật ${p.date.spl
 export function findSong(songs: Song[], s: ProgramSong): Song | undefined {
   if (s.book && s.number) {
     const book = norm(s.book)
-    const hit = songs.find((x) => x.songbooks.some((b) => b.number === s.number && norm(b.book) === book))
+    const num = (n?: string) => n?.replace(/^0+/, '')
+    const hit = songs.find((x) => x.songbooks.some((b) => num(b.number) === num(s.number) && norm(b.book) === book))
     if (hit) return hit
   }
   const title = norm(s.title)

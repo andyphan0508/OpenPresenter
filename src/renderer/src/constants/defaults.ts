@@ -77,7 +77,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   midiEnabled: false,
   midiMappings: [],
   songRepoUrl: '',
-  programApiUrl: '',
+  programApiUrl: 'https://quanly-btnsg.vercel.app/api/program',
   songThemeId: 'theme-lyrics',
   bibleThemeId: 'theme-scripture',
   bibleSecondary: '',
