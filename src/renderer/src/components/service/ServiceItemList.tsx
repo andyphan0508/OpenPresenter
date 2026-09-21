@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, BookOpenText, MusicNotes, Square, Trash } from '@phosphor-icons/react'
+import { ArrowDown, ArrowUp, BookOpenText, MusicNotes, Square, TextT, Trash } from '@phosphor-icons/react'
 import { SCRIPTURE_COLOR } from '../../constants/sections'
 import { serviceItems } from '../../helpers/serviceItems'
 import { slideText } from '../../helpers/slideFactory'
@@ -10,6 +10,7 @@ import { IconButton } from '../ui/IconButton'
 const KIND = {
   song: { icon: <MusicNotes size={14} />, color: '#ea580c' },
   bible: { icon: <BookOpenText size={14} />, color: SCRIPTURE_COLOR },
+  text: { icon: <TextT size={14} />, color: '#0d9488' },
   custom: { icon: <Square size={14} />, color: '#6b7280' }
 }
 

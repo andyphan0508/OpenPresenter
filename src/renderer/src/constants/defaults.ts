@@ -77,6 +77,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   midiEnabled: false,
   midiMappings: [],
   songRepoUrl: '',
+  programApiUrl: '',
   songThemeId: 'theme-lyrics',
   bibleThemeId: 'theme-scripture',
   bibleSecondary: '',

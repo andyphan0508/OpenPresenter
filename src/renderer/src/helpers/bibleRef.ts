@@ -31,3 +31,11 @@ export function parseRef(input: string): BibleRef | undefined {
 }
 
 export const bookName = (code: string) => BOOKS.find((b) => b[0] === code)?.[1] ?? code
+
+// One slide per verse, reference appended: "…\n(Giăng 3:16)". `from`/`to` are 1-based verse numbers.
+export function passageItems(name: string, chapter: number, from: number, to: number, verses: string[], english?: string[]) {
+  return verses.slice(from - 1, to).map((text, i) => {
+    const label = `${name} ${chapter}:${from + i}`
+    return { label, content: `${text}\n(${label})`, translation: english?.[from - 1 + i] }
+  })
+}

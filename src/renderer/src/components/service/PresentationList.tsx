@@ -1,7 +1,8 @@
-import { CalendarBlank, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
+import { CalendarBlank, CloudArrowDown, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useStore } from '../../store'
 import { IconButton } from '../ui/IconButton'
+import { ProgramSyncDialog } from './ProgramSyncDialog'
 
 function NameInput({ initial, onDone }: { initial: string; onDone: (name: string | null) => void }) {
   const [value, setValue] = useState(initial)
@@ -28,6 +29,7 @@ export function PresentationList() {
   const { createPresentation, setCurrentPresentation, renamePresentation, deletePresentation } = useStore.getState()
   const [creating, setCreating] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
 
   const defaultName = () => `Chúa Nhật ${new Date().toLocaleDateString('vi-VN')}`
 
@@ -35,8 +37,12 @@ export function PresentationList() {
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-3 pb-1 pt-2">
         <h3 className="panel-title">Buổi nhóm</h3>
-        <IconButton size="sm" label="Tạo chương trình mới" icon={<Plus size={14} />} onClick={() => setCreating(true)} />
+        <span className="flex gap-0.5">
+          <IconButton size="sm" label="Tải chương trình tuần từ dashboard" icon={<CloudArrowDown size={14} />} onClick={() => setSyncing(true)} />
+          <IconButton size="sm" label="Tạo chương trình mới" icon={<Plus size={14} />} onClick={() => setCreating(true)} />
+        </span>
       </div>
+      {syncing && <ProgramSyncDialog onClose={() => setSyncing(false)} />}
       <ul className="max-h-44 overflow-y-auto px-1.5 pb-2">
         {creating && (
           <li className="px-1.5 py-1">

@@ -7,6 +7,7 @@ import { serviceItems } from '../src/renderer/src/helpers/serviceItems'
 import { migrateSong } from '../src/renderer/src/helpers/songFactory'
 import { parseSongMarkdown, songToMarkdown } from '../src/renderer/src/helpers/songMarkdown'
 import { mergeSongIndex } from '../src/renderer/src/helpers/songRepo'
+import { findSong, lyricsMarkdown, parseProgram, resolveItem, type Program } from '../src/renderer/src/helpers/program'
 import { songMatches } from '../src/renderer/src/helpers/songSearch'
 import { formatSeconds, messageText, pauseTimer, startTimer, timerSeconds } from '../src/renderer/src/helpers/timer'
 import { resolveSlide } from '../src/renderer/src/helpers/theme'
@@ -122,5 +123,55 @@ assert.equal(keyBackground('external'), 'transparent')
 assert.equal(keyBackground('chroma'), '#00b140')
 assert.equal(keyBackground('full'), undefined)
 assert.equal(keyBackground('bogus'), undefined)
+
+// ── Weekly program sync (dashboard → service)
+{
+  const lib = useStore.getState().songs
+  const hymn = { ...lib[0], title: 'Ân Điển Diệu Kỳ', songbooks: [{ book: 'Thánh Ca', number: '12' }] }
+  assert.equal(findSong([hymn], { title: 'x', book: 'thanh ca', number: '12' }), hymn)
+  assert.equal(findSong([hymn], { title: 'x', number: '12' }), undefined) // number alone is ambiguous
+  assert.equal(findSong([hymn], { title: 'an dien dieu ky' }), hymn)
+  assert.match(lyricsMarkdown({ title: 'T', book: 'Thánh Ca', number: '5', lyrics: 'a\nb\n\nc' }), /## Songbook: Thánh Ca 5\n\n\[Verse 1\]\na\nb\n\n\[Verse 2\]\nc/)
+  assert.throws(() => parseProgram('{"songs":[]}'))
+
+  const program: Program = {
+    id: 'p1', date: '2026-09-27', title: '', updatedAt: 'v1',
+    items: [
+      { id: 'w', kind: 'text', label: 'Chào mừng' },
+      { id: 'v', kind: 'bible', label: 'Câu gốc', ref: 'Giăng 3:16' },
+      { id: 's', kind: 'song', label: 'Tôn vinh', song: { title: 'Bài Mới', lyrics: '[Verse 1]\nla la' } },
+      { id: 'm', kind: 'song', label: 'Tôn vinh', song: { title: 'Không Có' } }
+    ]
+  }
+  const passage = async (ref: string) => (ref === 'Giăng 3:16' ? [{ label: ref, content: 'Vì Đức Chúa Trời yêu thương…' }] : undefined)
+  const resolveAll = (p: Program) => Promise.all(p.items.map((i) => resolveItem(i, useStore.getState().songs, passage)))
+  ;(async () => {
+    const first = await resolveAll(program)
+    assert.deepEqual(first.map((r) => r.status), ['ok', 'ok', 'new-song', 'missing'])
+    const presId = useStore.getState().applyProgram(program, first)
+    const pres = () => useStore.getState().presentations.find((p) => p.id === presId)!
+    const groupTitles = () => serviceItems(pres().slides).map((i) => i.group?.title ?? 'manual')
+    assert.equal(pres().name, 'Chúa Nhật 27/09/2026')
+    assert.deepEqual(groupTitles(), ['Chào mừng', 'Câu gốc — Giăng 3:16', 'Bài Mới', 'Không Có'])
+    assert.ok(useStore.getState().songs.some((s) => s.title === 'Bài Mới')) // lyrics landed in the library
+
+    // Operator edits the welcome slide and adds an announcement after the Bible verse.
+    const welcome = pres().slides[0]
+    useStore.getState().updateTextBlock(presId, welcome.id, welcome.textBlocks[0].id, { content: 'Chào mừng quý khách!' })
+    const added = useStore.getState().addSlide(presId) // lands at the end → move it up behind the verse
+    for (let i = 0; i < 2; i++) useStore.getState().moveGroup(presId, added, -1)
+    assert.deepEqual(groupTitles(), ['Chào mừng', 'Câu gốc — Giăng 3:16', 'manual', 'Bài Mới', 'Không Có'])
+
+    // Dashboard changes: new verse, missing song dropped, one song added. Sync again.
+    const v2: Program = { ...program, updatedAt: 'v2', items: [
+      program.items[0], { ...program.items[1], ref: 'Thi 23' }, program.items[2], { id: 'n', kind: 'song', label: 'Tôn vinh', song: { title: 'Ân Điển' } }
+    ] }
+    assert.equal(useStore.getState().applyProgram(v2, await resolveAll(v2)), presId) // same service, not a new one
+    assert.deepEqual(groupTitles(), ['Chào mừng', 'Câu gốc', 'manual', 'Bài Mới', 'Ân Điển'])
+    assert.equal(pres().slides[0].textBlocks[0].content, 'Chào mừng quý khách!') // unchanged item kept the edit
+    assert.equal(pres().program?.updatedAt, 'v2')
+    console.log('check: program ok')
+  })().catch((e) => { console.error(e); process.exit(1) })
+}
 
 console.log('check: ok')

@@ -44,8 +44,10 @@ export interface AutoAdvance {
 export interface SlideGroup {
   id: string
   title: string
-  kind: 'song' | 'bible'
+  kind: 'song' | 'bible' | 'text'
   autoAdvance?: AutoAdvance
+  // Came from a weekly program (dashboard): which item, and a signature of what was built from it.
+  programItem?: { id: string; sig: string }
 }
 
 // 'slide' = push in from the right (ProPresenter "Push").
@@ -69,6 +71,8 @@ export interface Presentation {
   id: string
   name: string
   slides: Slide[]
+  // Synced from a weekly program on the dashboard (see helpers/program.ts).
+  program?: { id: string; updatedAt: string }
   createdAt: string
   updatedAt: string
 }

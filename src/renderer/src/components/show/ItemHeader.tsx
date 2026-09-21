@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, BookOpenText, MusicNotes, Repeat, Square, Trash } from '@phosphor-icons/react'
+import { ArrowDown, ArrowUp, BookOpenText, MusicNotes, Repeat, Square, TextT, Trash } from '@phosphor-icons/react'
 import type { ServiceItem } from '../../helpers/serviceItems'
 import { useStore } from '../../store'
 import { IconButton } from '../ui/IconButton'
@@ -23,7 +23,7 @@ export function ItemHeader({ presId, item, isFirst, isLast }: ItemHeaderProps) {
   return (
     <div className="sticky top-0 z-10 flex h-9 items-center gap-2 border-b border-line bg-app/95 px-1 backdrop-blur">
       <span className="text-muted">
-        {group?.kind === 'bible' ? <BookOpenText size={15} /> : group ? <MusicNotes size={15} /> : <Square size={15} />}
+        {group?.kind === 'bible' ? <BookOpenText size={15} /> : group?.kind === 'text' ? <TextT size={15} /> : group ? <MusicNotes size={15} /> : <Square size={15} />}
       </span>
       <h2 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-fg">{group?.title ?? 'Slide'}</h2>
 

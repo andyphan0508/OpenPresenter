@@ -2,7 +2,7 @@ import { MagnifyingGlass, Play, Plus } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 import { BIBLE_VERSION_LABEL, getChapter, getChapterCounts } from '../../api/bible'
 import { BOOKS } from '../../constants/bibleBooks'
-import { bookName, parseRef } from '../../helpers/bibleRef'
+import { bookName, parseRef, passageItems } from '../../helpers/bibleRef'
 import { useStore } from '../../store'
 import { Button } from '../ui/Button'
 
@@ -52,10 +52,7 @@ export function BibleBin() {
 
   const add = (live: boolean) => {
     if (!currentPresentationId || !range) return
-    const items = verses.slice(from - 1, to).map((text, i) => {
-      const label = `${name} ${chapter}:${from + i}`
-      return { label, content: `${text}\n(${label})`, translation: secondary ? english[from - 1 + i] : undefined }
-    })
+    const items = passageItems(name, chapter, from, to, verses, secondary ? english : undefined)
     const first = addSlideGroup(currentPresentationId, title, 'bible', items, bibleThemeId)
     if (live && first) goLive(first)
   }

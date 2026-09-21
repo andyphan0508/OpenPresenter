@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_TEXT_BLOCK } from '../constants/defaults'
-import type { Slide, SlideGroup, SongSection } from '../types'
+import type { Slide, SlideGroup, Song, SongSection } from '../types'
+import { orderedSections } from './arrangement'
 
 export interface GroupItem {
   label?: string
@@ -8,6 +9,9 @@ export interface GroupItem {
   translation?: string
   sectionType?: SongSection
 }
+
+export const songItems = (song: Pick<Song, 'slides' | 'arrangements' | 'activeArrangementId'>): GroupItem[] =>
+  orderedSections(song).map((s) => ({ label: s.sectionLabel, content: s.content, translation: s.translation, sectionType: s.sectionType }))
 
 export function createBlankSlide(): Slide {
   return {

@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_TEXT_BLOCK } from '../../constants/defaults'
-import { orderedSections } from '../../helpers/arrangement'
+import { mergeProgramSlides, programName, type Program, type ResolvedItem } from '../../helpers/program'
 import { moveItem, removeItem } from '../../helpers/serviceItems'
-import { createBlankSlide, createThemedSlide, duplicateSlide, type GroupItem } from '../../helpers/slideFactory'
+import { createBlankSlide, createThemedSlide, duplicateSlide, songItems, type GroupItem } from '../../helpers/slideFactory'
 import { detachTheme } from '../../helpers/theme'
 import type { Presentation, Slide, SlideGroup, SlideTransition, Song, TextBlock } from '../../types'
 import type { AppState, SliceCreator } from '../types'
@@ -32,6 +32,7 @@ export interface PresentationSlice {
 
   addSlideGroup: (presId: string, title: string, kind: SlideGroup['kind'], items: GroupItem[], themeId: string) => string | undefined
   addSongToService: (presId: string, song: Song) => string | undefined
+  applyProgram: (program: Program, resolved: ResolvedItem[]) => string
   moveGroup: (presId: string, key: string, dir: -1 | 1) => void
   deleteGroup: (presId: string, key: string) => void
   updateGroup: (presId: string, groupId: string, updates: Partial<SlideGroup>) => void
@@ -144,14 +145,37 @@ export const createPresentationSlice: SliceCreator<PresentationSlice> = (set, ge
     return newSlides[0]?.id
   },
 
-  addSongToService: (presId, song) => {
-    const items = orderedSections(song).map((s) => ({
-      label: s.sectionLabel,
-      content: s.content,
-      translation: s.translation,
-      sectionType: s.sectionType
-    }))
-    return get().addSlideGroup(presId, song.title, 'song', items, get().settings.songThemeId)
+  addSongToService: (presId, song) =>
+    get().addSlideGroup(presId, song.title, 'song', songItems(song), get().settings.songThemeId),
+
+  // Weekly program → a service. Same program again = merge into the existing service, keeping local edits.
+  applyProgram: (program, resolved) => {
+    const { settings, addSong } = get()
+    for (const r of resolved) if (r.newSong) addSong(r.newSong)
+    const fresh = resolved.map((r) => {
+      const group: SlideGroup = { id: uuidv4(), title: r.title, kind: r.kind, programItem: { id: r.item.id, sig: r.sig } }
+      const themeId = r.kind === 'bible' ? settings.bibleThemeId : settings.songThemeId
+      const slides = r.slides.map((item) => createThemedSlide(item, group, themeId))
+      if (r.item.note) slides[0].notes = r.item.note
+      return { itemId: r.item.id, sig: r.sig, slides }
+    })
+    const source = { id: program.id, updatedAt: program.updatedAt }
+    const existing = get().presentations.find((p) => p.program?.id === program.id)
+    if (existing) {
+      set((s) => ({
+        presentations: s.presentations.map((p) =>
+          p.id === existing.id ? { ...p, program: source, slides: mergeProgramSlides(p.slides, fresh), updatedAt: now() } : p
+        )
+      }))
+      get().setCurrentPresentation(existing.id)
+      return existing.id
+    }
+    const pres: Presentation = {
+      id: uuidv4(), name: programName(program), program: source, slides: fresh.flatMap((f) => f.slides), createdAt: now(), updatedAt: now()
+    }
+    set((s) => ({ presentations: [...s.presentations, pres] }))
+    get().setCurrentPresentation(pres.id)
+    return pres.id
   },
 
   moveGroup: (presId, key, dir) => set((s) => withSlides(s, presId, (slides) => moveItem(slides, key, dir))),

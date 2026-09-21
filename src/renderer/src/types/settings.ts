@@ -25,6 +25,7 @@ export interface AppSettings {
   midiEnabled: boolean
   midiMappings: MidiMapping[]
   songRepoUrl: string
+  programApiUrl: string
   songThemeId: string
   bibleThemeId: string
   bibleSecondary: '' | 'kjv'
