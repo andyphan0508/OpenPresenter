@@ -42,6 +42,8 @@ export interface StagePayload {
   current: { label?: string; text: string } | null
   next: { label?: string; text: string } | null
   groupTitle?: string
+  cue?: string // the live item's notes: who leads, planned minutes, remarks
+  nextGroupTitle?: string // set when the next slide starts another item
   message: Message | null
   timers: Timer[]
 }

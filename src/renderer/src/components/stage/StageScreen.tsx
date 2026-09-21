@@ -21,6 +21,10 @@ export function StageScreen({ data }: { data: StagePayload }) {
         </div>
       </header>
 
+      {data.cue && (
+        <div className="truncate rounded-lg bg-white/10 px-[1.5vw] py-[0.6vw] text-[2.2vw] text-amber-200">{data.cue}</div>
+      )}
+
       {data.message && (
         <div className="rounded-lg bg-red-600 px-[1.5vw] py-[0.8vw] text-center text-[3vw] font-bold">
           {messageText(data.message, data.timers, now)}
@@ -38,7 +42,7 @@ export function StageScreen({ data }: { data: StagePayload }) {
 
       <section className="flex min-h-0 flex-[2] flex-col border-t border-white/20 pt-[1vw]">
         <span className="text-[1.8vw] font-bold uppercase tracking-wider text-sky-400">
-          Tiếp theo{data.next?.label ? ` · ${data.next.label}` : ''}
+          Tiếp theo{data.nextGroupTitle ? ` · ${data.nextGroupTitle}` : ''}{data.next?.label ? ` · ${data.next.label}` : ''}
         </span>
         <p className="min-h-0 flex-1 overflow-hidden whitespace-pre-wrap text-[3vw] leading-tight text-white/70">
           {data.next?.text ?? '—'}

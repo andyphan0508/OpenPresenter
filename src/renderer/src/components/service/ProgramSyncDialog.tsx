@@ -1,7 +1,7 @@
 import { BookOpenText, CheckCircle, CloudArrowDown, MusicNotes, Plus, TextT, Warning } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { fetchProgram, loadPassage } from '../../api/program'
-import { programName, resolveItem, type Program, type ResolvedItem } from '../../helpers/program'
+import { itemCue, programName, resolveItem, type Program, type ResolvedItem } from '../../helpers/program'
 import { useStore } from '../../store'
 import { Button } from '../ui/Button'
 import { Field } from '../ui/Field'
@@ -37,9 +37,9 @@ export function ProgramSyncDialog({ onClose }: { onClose: () => void }) {
     try {
       updateSettings({ programApiUrl: url.trim() })
       const program = await fetchProgram(url.trim(), date || undefined)
-      const { songs, settings } = useStore.getState()
+      const { songs } = useStore.getState()
       const resolved = await Promise.all(
-        program.items.map((item) => resolveItem(item, songs, (ref) => loadPassage(ref, settings.bibleSecondary)))
+        program.items.map((item) => resolveItem(item, songs, (ref, bilingual) => loadPassage(ref, bilingual ? 'kjv' : '')))
       )
       setLoaded({ program, resolved })
     } catch (e) {
@@ -94,6 +94,7 @@ export function ProgramSyncDialog({ onClose }: { onClose: () => void }) {
           <div className="space-y-2">
             <p className="text-[13px] font-semibold text-fg">
               {programName(loaded.program)} · {loaded.program.date.split('-').reverse().join('/')}
+              {loaded.program.startTime && ` · ${loaded.program.startTime}`}
             </p>
             <ol className="divide-y divide-line rounded-md border border-line">
               {loaded.resolved.map((r, i) => (
@@ -102,7 +103,11 @@ export function ProgramSyncDialog({ onClose }: { onClose: () => void }) {
                   <span className="mt-0.5 text-muted">{KIND_ICON[r.kind]}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-fg">{r.title}</span>
-                    {r.item.kind === 'song' && r.item.label && <span className="block text-2xs text-muted">{r.item.label}</span>}
+                    {(r.item.kind === 'song' || r.item.kind === 'sermon') && r.item.label && <span className="block text-2xs text-muted">{r.item.label}</span>}
+                    {r.item.song?.arrangement?.length ? (
+                      <span className="block text-2xs text-muted">Thứ tự hát: {r.item.song.arrangement.join(' → ')}</span>
+                    ) : null}
+                    {itemCue(r.item) && <span className="block text-2xs text-muted">{itemCue(r.item)}</span>}
                     {STATUS[r.status].text && <span className="block text-2xs text-muted">{STATUS[r.status].text}</span>}
                   </span>
                   <span className="text-2xs text-muted">{r.slides.length} slide</span>

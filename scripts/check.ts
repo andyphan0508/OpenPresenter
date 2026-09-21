@@ -7,7 +7,7 @@ import { serviceItems } from '../src/renderer/src/helpers/serviceItems'
 import { migrateSong } from '../src/renderer/src/helpers/songFactory'
 import { parseSongMarkdown, songToMarkdown } from '../src/renderer/src/helpers/songMarkdown'
 import { mergeSongIndex } from '../src/renderer/src/helpers/songRepo'
-import { findSong, lyricsMarkdown, parseProgram, resolveItem, type Program } from '../src/renderer/src/helpers/program'
+import { arrangedSongItems, findSong, itemCue, lyricsMarkdown, parseProgram, resolveItem, type Program } from '../src/renderer/src/helpers/program'
 import { parseThanhcaPage } from '../src/renderer/src/helpers/thanhca'
 import { songMatches } from '../src/renderer/src/helpers/songSearch'
 import { formatSeconds, messageText, pauseTimer, startTimer, timerSeconds } from '../src/renderer/src/helpers/timer'
@@ -144,6 +144,36 @@ assert.equal(keyBackground('bogus'), undefined)
   assert.deepEqual(parseSongMarkdown(long.markdown).slides.map((s) => s.sectionLabel), ['Câu 1', 'Câu 1 – phần 2', 'Câu 1 – phần 3'])
   assert.equal(parseThanhcaPage('<html>500</html>', 1), undefined)
   assert.equal(findSong([{ ...useStore.getState().songs[0], songbooks: [{ book: 'Thánh Ca', number: '29' }] }], { title: '', book: 'Thánh Ca', number: '029' })?.songbooks[0].number, '29')
+}
+
+// ── Program v2: arrangement, sermon, cues, bilingual
+{
+  const hymn = { slides: parseSongMarkdown('# H\n[Câu 1]\na\n[Điệp khúc]\nb\n[Câu 2]\nc\n[Câu 2 – phần 2]\nc2').slides }
+  const labels = (items: { label?: string }[]) => items.map((i) => i.label)
+  assert.deepEqual(labels(arrangedSongItems(hymn, ['Câu 2', 'Điệp khúc', 'câu 1'])), ['Câu 2', 'Câu 2 – phần 2', 'Điệp khúc', 'Câu 1'])
+  assert.deepEqual(labels(arrangedSongItems(hymn, ['Không có'])), ['Câu 1', 'Điệp khúc', 'Câu 2', 'Câu 2 – phần 2']) // unknown → song order
+  assert.equal(itemCue({ id: 'x', kind: 'text', label: '', leader: 'MS. An', minutes: 5, note: 'Mời đứng' }), 'Phụ trách: MS. An · 5 phút · Mời đứng')
+
+  const asked: [string, boolean][] = []
+  const passage = async (ref: string, bilingual: boolean) => (asked.push([ref, bilingual]), [{ label: ref, content: 'v' }])
+  ;(async () => {
+    const sermon = await resolveItem(
+      { id: 's', kind: 'sermon', label: 'Giảng luận', text: 'Ân điển', speaker: 'MS. Bình', ref: 'Êph 2:8', bilingual: true },
+      [],
+      passage
+    )
+    assert.equal(sermon.kind, 'bible')
+    assert.equal(sermon.title, 'Giảng luận — Ân điển')
+    assert.deepEqual(sermon.slides.map((x) => x.content), ['Ân điển\nMS. Bình', 'v'])
+    assert.deepEqual(asked, [['Êph 2:8', true]])
+    const song = await resolveItem(
+      { id: 'g', kind: 'song', label: 'Tôn vinh', song: { title: 'Mới', lyrics: '[Verse 1]\na\n[Chorus]\nb', arrangement: ['Chorus', 'Verse 1', 'Chorus'] } },
+      [],
+      passage
+    )
+    assert.deepEqual(song.slides.map((x) => x.label), ['Chorus', 'Verse 1', 'Chorus'])
+    console.log('check: program v2 ok')
+  })().catch((e) => { console.error(e); process.exit(1) })
 }
 
 // ── Weekly program sync (dashboard → service)

@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_TEXT_BLOCK } from '../../constants/defaults'
-import { mergeProgramSlides, programName, type Program, type ResolvedItem } from '../../helpers/program'
+import { itemCue, mergeProgramSlides, programName, type Program, type ResolvedItem } from '../../helpers/program'
 import { moveItem, removeItem } from '../../helpers/serviceItems'
 import { createBlankSlide, createThemedSlide, duplicateSlide, songItems, type GroupItem } from '../../helpers/slideFactory'
 import { detachTheme } from '../../helpers/theme'
@@ -156,7 +156,7 @@ export const createPresentationSlice: SliceCreator<PresentationSlice> = (set, ge
       const group: SlideGroup = { id: uuidv4(), title: r.title, kind: r.kind, programItem: { id: r.item.id, sig: r.sig } }
       const themeId = r.kind === 'bible' ? settings.bibleThemeId : settings.songThemeId
       const slides = r.slides.map((item) => createThemedSlide(item, group, themeId))
-      if (r.item.note) slides[0].notes = r.item.note
+      slides[0].notes = itemCue(r.item)
       return { itemId: r.item.id, sig: r.sig, slides }
     })
     const source = { id: program.id, updatedAt: program.updatedAt }

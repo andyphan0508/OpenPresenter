@@ -14,15 +14,20 @@ export interface ProgramSong {
   book?: string
   number?: string
   lyrics?: string
+  arrangement?: string[] // sing order by section label; empty = the song's own order
 }
 
 export interface ProgramItem {
   id: string
-  kind: 'text' | 'bible' | 'song'
+  kind: 'text' | 'bible' | 'song' | 'sermon'
   label: string
-  text?: string
-  ref?: string
+  text?: string // text: on-screen text · sermon: sermon title
+  ref?: string // bible / sermon
+  bilingual?: boolean // bible / sermon: add the KJV line
+  speaker?: string // sermon
   song?: ProgramSong
+  leader?: string
+  minutes?: number
   note?: string
 }
 
@@ -30,6 +35,7 @@ export interface Program {
   id: string
   date: string
   title: string
+  startTime?: string // "HH:MM"
   updatedAt: string
   items: ProgramItem[]
 }
@@ -66,6 +72,23 @@ export function findSong(songs: Song[], s: ProgramSong): Song | undefined {
   return title ? songs.find((x) => norm(x.title) === title) : undefined
 }
 
+/**
+ * Song slides in the order chosen on the dashboard. A label also takes its " – phần N" continuation slides
+ * (long Thánh Ca sections are split). Labels the song doesn't have are skipped; nothing matched → the song's own order.
+ */
+export function arrangedSongItems(song: Pick<Song, 'slides' | 'arrangements' | 'activeArrangementId'>, arrangement?: string[]): GroupItem[] {
+  const key = (label: string) => label.trim().toLowerCase()
+  const slides = (arrangement ?? []).flatMap((label) =>
+    song.slides.filter((s) => key(s.sectionLabel) === key(label) || key(s.sectionLabel).startsWith(`${key(label)} – phần `))
+  )
+  if (!slides.length) return songItems(song)
+  return slides.map((s) => ({ label: s.sectionLabel, content: s.content, translation: s.translation, sectionType: s.sectionType }))
+}
+
+// Operator cue shown with the item (first slide notes → stage display): who leads, how long, remarks.
+export const itemCue = (item: ProgramItem) =>
+  [item.leader && `Phụ trách: ${item.leader}`, item.minutes && `${item.minutes} phút`, item.note].filter(Boolean).join(' · ')
+
 // Lyrics pasted on the dashboard → song markdown. Without [Section] headers each paragraph is a verse.
 export function lyricsMarkdown(s: ProgramSong): string {
   const body = (s.lyrics ?? '').trim()
@@ -84,10 +107,11 @@ export function lyricsMarkdown(s: ProgramSong): string {
 export async function resolveItem(
   item: ProgramItem,
   songs: Song[],
-  passage: (ref: string) => Promise<GroupItem[] | undefined>
+  passage: (ref: string, bilingual: boolean) => Promise<GroupItem[] | undefined>
 ): Promise<ResolvedItem> {
   const label = item.label || item.song?.title || item.ref || 'Mục'
-  const base = { item, title: label, kind: item.kind, sig: '' }
+  const kind: SlideGroup['kind'] = item.kind === 'sermon' ? 'bible' : item.kind
+  const base = { item, title: label, kind, sig: '' }
   const placeholder = (content: string) => [{ label, content }]
   let r: Omit<ResolvedItem, 'sig'>
 
@@ -95,16 +119,27 @@ export async function resolveItem(
     const s = item.song ?? { title: '' }
     const title = s.title || label
     const found = findSong(songs, s)
-    if (found) r = { ...base, title: found.title, slides: songItems(found), status: 'ok' }
+    if (found) r = { ...base, title: found.title, slides: arrangedSongItems(found, s.arrangement), status: 'ok' }
     else if (s.lyrics) {
       const newSong = songFieldsFromMarkdown(lyricsMarkdown({ ...s, title }))
-      r = { ...base, title, slides: songItems(newSong), status: 'new-song', newSong }
+      r = { ...base, title, slides: arrangedSongItems(newSong, s.arrangement), status: 'new-song', newSong }
     } else r = { ...base, title, slides: placeholder(title), status: 'missing' }
   } else if (item.kind === 'bible') {
-    const verses = item.ref ? await passage(item.ref) : undefined
+    const verses = item.ref ? await passage(item.ref, !!item.bilingual) : undefined
     r = verses?.length
       ? { ...base, title: `${label} — ${item.ref}`, slides: verses, status: 'ok' }
       : { ...base, slides: placeholder(item.ref ? `${label}\n${item.ref}` : label), status: 'missing' }
+  } else if (item.kind === 'sermon') {
+    // Title card (topic + speaker), then the passage one verse per slide.
+    const card = { label, content: [item.text || label, item.speaker].filter(Boolean).join('\n') }
+    const verses = item.ref ? await passage(item.ref, !!item.bilingual) : undefined
+    const passageSlides = verses?.length ? verses : item.ref ? [{ label: item.ref, content: item.ref }] : []
+    r = {
+      ...base,
+      title: item.text ? `${label} — ${item.text}` : label,
+      slides: [card, ...passageSlides],
+      status: item.ref && !verses?.length ? 'missing' : 'ok'
+    }
   } else {
     r = { ...base, slides: placeholder(item.text || label), status: 'ok' }
   }

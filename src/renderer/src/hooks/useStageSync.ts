@@ -17,10 +17,13 @@ export function useStageSync(): StagePayload {
     const idx = live && pres ? pres.slides.indexOf(live) : -1
     const next = pres?.slides[idx + 1]
     const message = messages.find((m) => m.id === activeMessageId)
+    const itemSlides = live?.group ? (pres?.slides ?? []).filter((s) => s.group?.id === live.group!.id) : live ? [live] : []
     return {
       current: live ? { label: live.label, text: slideText(live) } : null,
       next: next ? { label: next.label, text: slideText(next) } : null,
       groupTitle: live?.group?.title,
+      cue: live?.notes || itemSlides.find((s) => s.notes)?.notes || undefined,
+      nextGroupTitle: next && next.group?.id !== live?.group?.id ? next.group?.title : undefined,
       message: message && message.target !== 'audience' ? message : null,
       timers
     }
