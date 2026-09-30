@@ -43,6 +43,10 @@ const api = {
     fetchText: (url: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> =>
       ipcRenderer.invoke('net:fetch-text', url)
   },
+  ocr: {
+    image: (apiKey: string, mediaType: string, data: string): Promise<{ ok: true; text: string } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('ocr:image', apiKey, mediaType, data)
+  },
   remote: {
     configure: (enabled: boolean, port: number, pin: string): Promise<RemoteStatus> =>
       ipcRenderer.invoke('remote:configure', enabled, port, pin),

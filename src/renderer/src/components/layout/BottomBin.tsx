@@ -2,12 +2,13 @@ import { X } from '@phosphor-icons/react'
 import { useStore } from '../../store'
 import { BibleBin } from '../bible/BibleBin'
 import { MediaBin } from '../media/MediaBin'
+import { OcrBin } from '../ocr/OcrBin'
 import { ThemeBin } from '../themes/ThemeBin'
 import { IconButton } from '../ui/IconButton'
 
-const TITLES = { bible: 'Kinh Thánh', media: 'Media', themes: 'Themes' } as const
+const TITLES = { bible: 'Kinh Thánh', media: 'Media', themes: 'Themes', ocr: 'Đọc chữ từ ảnh (OCR)' } as const
 
-// Collapsible bottom drawer under the slide grid (Bible / Media / Themes bins).
+// Collapsible bottom drawer under the slide grid (Bible / Media / Themes / OCR bins).
 export function BottomBin() {
   const bin = useStore((s) => s.bottomBin)
   const toggle = useStore((s) => s.toggleBottomBin)
@@ -22,6 +23,7 @@ export function BottomBin() {
         {bin === 'bible' && <BibleBin />}
         {bin === 'media' && <MediaBin />}
         {bin === 'themes' && <ThemeBin />}
+        {bin === 'ocr' && <OcrBin />}
       </div>
     </section>
   )

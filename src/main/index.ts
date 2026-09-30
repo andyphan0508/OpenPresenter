@@ -5,6 +5,7 @@ import { registerDecklinkIpc, stopDecklink } from "./ipc/decklinkIpc";
 import { registerDisplayIpc } from "./ipc/displayIpc";
 import { registerFileIpc } from "./ipc/fileIpc";
 import { registerNetIpc } from "./ipc/netIpc";
+import { registerOcrIpc } from "./ipc/ocrIpc";
 import { registerRemoteIpc } from "./ipc/remoteIpc";
 import { registerStorageIpc } from "./ipc/storageIpc";
 import {
@@ -31,6 +32,7 @@ app.whenReady().then(() => {
   registerBibleIpc();
   registerFileIpc();
   registerNetIpc();
+  registerOcrIpc();
   registerRemoteIpc();
   registerDecklinkIpc();
 

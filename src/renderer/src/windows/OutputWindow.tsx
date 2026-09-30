@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { subscribeOutput } from '../api/display'
+import { CloseDisplayButton } from '../components/output/CloseDisplayButton'
 import { OutputScreen } from '../components/output/OutputScreen'
 import { ALL_LAYERS_ON, DEFAULT_OUTPUT_SETTINGS } from '../constants/defaults'
 import { keyBackground } from '../helpers/keyer'
@@ -18,5 +19,10 @@ const background = kind === 'keyer' ? keyBackground(params.get('key')) : undefin
 export function OutputWindow() {
   const [payload, setPayload] = useState<OutputPayload>(EMPTY)
   useEffect(() => subscribeOutput(setPayload, kind), [])
-  return <OutputScreen payload={payload} keyBackground={background} />
+  return (
+    <>
+      <OutputScreen payload={payload} keyBackground={background} />
+      {kind === 'output' && <CloseDisplayButton kind="output" />}
+    </>
+  )
 }

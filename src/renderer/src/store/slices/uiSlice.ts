@@ -2,7 +2,7 @@ import type { SliceCreator } from '../types'
 
 export type Mode = 'show' | 'edit'
 export type LeftTab = 'service' | 'library'
-export type BottomBin = 'bible' | 'media' | 'themes'
+export type BottomBin = 'bible' | 'media' | 'themes' | 'ocr'
 export type RightTab = 'stage' | 'messages' | 'timers' | 'props'
 export type Dialog = 'settings' | 'remote' | 'blackmagic' | 'songRepo' | 'shortcuts' | null
 

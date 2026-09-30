@@ -1,4 +1,4 @@
-import { BookOpenText, ImageSquare, Keyboard, Palette } from '@phosphor-icons/react'
+import { BookOpenText, ImageSquare, Keyboard, Palette, Scan } from '@phosphor-icons/react'
 import type { ReactNode } from 'react'
 import { useClock } from '../../hooks/useClock'
 import { useCurrentPresentation, useLiveSlide } from '../../hooks/useSelectors'
@@ -39,6 +39,7 @@ export function StatusBar() {
         <BinButton bin="bible" label="Kinh Thánh" icon={<BookOpenText size={14} />} />
         <BinButton bin="media" label="Media" icon={<ImageSquare size={14} />} />
         <BinButton bin="themes" label="Themes" icon={<Palette size={14} />} />
+        <BinButton bin="ocr" label="OCR" icon={<Scan size={14} />} />
       </div>
 
       <div className="flex min-w-0 items-center gap-2">

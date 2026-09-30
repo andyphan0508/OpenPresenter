@@ -84,5 +84,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   gridSize: 200,
   decklinkDevice: 0,
   decklinkFormat: 'Hp30',
-  decklinkKeyMode: 'luma'
+  decklinkKeyMode: 'luma',
+  anthropicApiKey: ''
 }

@@ -33,4 +33,5 @@ export interface AppSettings {
   decklinkDevice: number
   decklinkFormat: string // DeckLink display-mode FourCC; must match the switcher's video standard
   decklinkKeyMode: KeyMode
+  anthropicApiKey: string // OCR bin; empty = SDK reads ANTHROPIC_API_KEY
 }

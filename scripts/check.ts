@@ -13,9 +13,14 @@ import { songMatches } from '../src/renderer/src/helpers/songSearch'
 import { formatSeconds, messageText, pauseTimer, startTimer, timerSeconds } from '../src/renderer/src/helpers/timer'
 import { resolveSlide } from '../src/renderer/src/helpers/theme'
 import { keyBackground } from '../src/renderer/src/helpers/keyer'
+import { splitSlides } from '../src/renderer/src/helpers/image'
 import { fourCC } from '../src/main/services/decklinkService'
 import { useStore } from '../src/renderer/src/store'
 import type { Song, Timer } from '../src/renderer/src/types'
+
+// ── OCR text → slides: blank lines (even with spaces / CRLF) split, empty chunks dropped
+assert.deepEqual(splitSlides('A\nB\n\n  \nC\r\n\r\nD\n\n'), ['A\nB', 'C', 'D'])
+assert.deepEqual(splitSlides('  \n'), [])
 
 // ── Bible references
 const ref = (s: string) => {

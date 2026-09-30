@@ -12,6 +12,7 @@
     "setup:blackmagic": "npm install --ignore-scripts && cd node_modules/macadam && npx --yes node-gyp rebuild --target=$(node -p \"require('electron/package.json').version\") --dist-url=https://electronjs.org/headers"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
     "@phosphor-icons/react": "^2.1.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
